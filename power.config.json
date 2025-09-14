@@ -1,0 +1,12 @@
+{
+  "appId": "c5bf83a9-7b0f-476d-86bd-b822640b2088",
+  "appDisplayName": "Calendar",
+  "description": null,
+  "environmentId": "Default-314a500a-e012-42a2-9513-01bc10b3dc6e",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "logoPath": "Default",
+  "localAppUrl": "http://localhost:3000/",
+  "connectionReferences": {},
+  "databaseReferences": {}
+}
