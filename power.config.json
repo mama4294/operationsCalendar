@@ -8,5 +8,20 @@
   "logoPath": "Default",
   "localAppUrl": "http://localhost:3000/",
   "connectionReferences": {},
-  "databaseReferences": {}
+  "databaseReferences": {
+    "default.cds": {
+      "state": "Configured",
+      "instanceUrl": "https://org8ef10ef2.crm.dynamics.com/",
+      "webApiVersion": "v9.0",
+      "dataSources": {
+        "cr2b6_equipments": {
+          "entitySetName": "cr2b6_equipments",
+          "logicalName": "cr2b6_equipment",
+          "isHidden": false
+        }
+      },
+      "version": "v9.0",
+      "environmentVariableName": ""
+    }
+  }
 }
