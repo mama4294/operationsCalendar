@@ -1,0 +1,71 @@
+/* Basic timeline styling - minimal overrides to avoid breaking library behavior */
+
+.timeline-grid .rct-header-root {
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.timeline-grid .rct-dateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 4px;
+  font-size: 12px;
+  border-left: 1px solid #e0e0e0;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.timeline-grid .rct-dateHeader-primary {
+  background-color: #f8f8f8;
+  font-weight: 600;
+  color: #323130;
+  height: 30px;
+}
+
+.timeline-grid .rct-dateHeader:not(.rct-dateHeader-primary) {
+  background-color: #fff;
+  color: #605e5c;
+  height: 30px;
+}
+
+.timeline-grid .rct-sidebar {
+  background-color: #f8f8f8;
+  border-right: 1px solid #e0e0e0;
+  font-size: 14px;
+}
+
+.timeline-grid .rct-sidebar-row {
+  min-height: 40px;
+  line-height: 40px;
+  padding: 0 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.timeline-grid .rct-item {
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  min-height: 28px;
+  margin: 6px 0;
+}
+
+/* Alternating row backgrounds, if provided by the timeline library */
+.timeline-grid .rct-horizontal-lines .rct-hl-odd {
+  background: #fff;
+}
+.timeline-grid .rct-horizontal-lines .rct-hl-even {
+  background: #fafafa;
+}
+
+/* Vertical grid lines */
+.timeline-grid .rct-vertical-lines .rct-vl {
+  border-left: 1px solid #eee;
+}
+
+/* Multi-select styling */
+.timeline-grid .rct-item[data-selected="true"] {
+  border: 2px solid #0078d4 !important;
+  box-shadow: 0 0 0 1px #0078d4, 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+  z-index: 10;
+}

@@ -12,7 +12,15 @@ import type { cr2b6_systems } from "../models/cr2b6_systemsModel";
 export class cr2b6_systemsService {
   private static readonly dataSourceName = "cr2b6_systems";
 
-  private static readonly client = getPowerSdkInstance(dataSourcesInfo).Data;
+  private static get client() {
+    const sdk = getPowerSdkInstance(dataSourcesInfo);
+    if (!sdk || !sdk.Data) {
+      throw new Error(
+        "Power Apps data client not available; ensure SDK is initialized before calling the service."
+      );
+    }
+    return sdk.Data;
+  }
 
   public static async create(
     record: Omit<cr2b6_systems, "cr2b6_systemid">

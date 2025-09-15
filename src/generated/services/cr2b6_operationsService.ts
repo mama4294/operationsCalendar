@@ -12,7 +12,15 @@ import type { cr2b6_operations } from "../models/cr2b6_operationsModel";
 export class cr2b6_operationsService {
   private static readonly dataSourceName = "cr2b6_operations";
 
-  private static readonly client = getPowerSdkInstance(dataSourcesInfo).Data;
+  private static get client() {
+    const sdk = getPowerSdkInstance(dataSourcesInfo);
+    if (!sdk || !sdk.Data) {
+      throw new Error(
+        "Power Apps data client not available; ensure SDK is initialized before calling the service."
+      );
+    }
+    return sdk.Data;
+  }
 
   public static async create(
     record: Omit<cr2b6_operations, "cr2b6_operationid">
