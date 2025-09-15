@@ -1,0 +1,451 @@
+{
+  "name": "cr2b6_batches",
+  "title": "Batches",
+  "schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "x-ms-dataverse-entity": true,
+      "x-ms-dataverse-entityset": "cr2b6_batcheses",
+      "x-ms-dataverse-primary-id": "cr2b6_batchesid",
+      "x-ms-dataverse-primary-name": "cr2b6_batchnumber",
+      "properties": {
+        "cr2b6_activecompoundg": {
+          "type": "string",
+          "title": "Active Compound (g)",
+          "x-ms-dataverse-attribute": "cr2b6_activecompoundg",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_activecompoundg_date": {
+          "type": "string",
+          "title": "Active Compound (g) (Last Updated On)",
+          "x-ms-dataverse-attribute": "cr2b6_activecompoundg_date",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_activecompoundg_state": {
+          "type": "string",
+          "title": "Active Compound (g) (State)",
+          "x-ms-dataverse-attribute": "cr2b6_activecompoundg_state",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "cr2b6_batchesid": {
+          "type": "string",
+          "title": "Batches",
+          "x-ms-dataverse-attribute": "cr2b6_batchesid",
+          "x-ms-dataverse-type": "UniqueidentifierType",
+          "x-ms-dataverse-primary-id": true,
+          "required": true,
+          "x-ms-keyType": "primary"
+        },
+        "cr2b6_batchnumber": {
+          "type": "string",
+          "title": "Batch Number",
+          "x-ms-dataverse-attribute": "cr2b6_batchnumber",
+          "x-ms-dataverse-type": "StringType",
+          "x-ms-dataverse-primary-name": true,
+          "required": true,
+          "maxLength": 850
+        },
+        "cr2b6_completedon": {
+          "type": "string",
+          "title": "Completed On",
+          "x-ms-dataverse-attribute": "cr2b6_completedon",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_homogenizerstarttime": {
+          "type": "string",
+          "title": "Homogenizer Start Time",
+          "x-ms-dataverse-attribute": "cr2b6_homogenizerstarttime",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_homogenizerstarttime_date": {
+          "type": "string",
+          "title": "Homogenizer Start Time (Last Updated On)",
+          "x-ms-dataverse-attribute": "cr2b6_homogenizerstarttime_date",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_homogenizerstarttime_state": {
+          "type": "string",
+          "title": "Homogenizer Start Time (State)",
+          "x-ms-dataverse-attribute": "cr2b6_homogenizerstarttime_state",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "cr2b6_liquidvolumel": {
+          "type": "string",
+          "title": "Liquid Volume (L)",
+          "x-ms-dataverse-attribute": "cr2b6_liquidvolumel",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_liquidvolumel_date": {
+          "type": "string",
+          "title": "Liquid Volume (L) (Last Updated On)",
+          "x-ms-dataverse-attribute": "cr2b6_liquidvolumel_date",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_liquidvolumel_state": {
+          "type": "string",
+          "title": "Liquid Volume (L) (State)",
+          "x-ms-dataverse-attribute": "cr2b6_liquidvolumel_state",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "cr2b6_mfstarttime": {
+          "type": "string",
+          "title": "MF Start Time",
+          "x-ms-dataverse-attribute": "cr2b6_mfstarttime",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_mfstarttime_date": {
+          "type": "string",
+          "title": "MF Start Time (Last Updated On)",
+          "x-ms-dataverse-attribute": "cr2b6_mfstarttime_date",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_mfstarttime_state": {
+          "type": "string",
+          "title": "MF Start Time (State)",
+          "x-ms-dataverse-attribute": "cr2b6_mfstarttime_state",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "cr2b6_notes": {
+          "type": "string",
+          "title": "Notes",
+          "x-ms-dataverse-attribute": "cr2b6_notes",
+          "x-ms-dataverse-type": "MemoType",
+          "maxLength": 2000
+        },
+        "cr2b6_product": {
+          "type": "string",
+          "title": "Description",
+          "x-ms-dataverse-attribute": "cr2b6_product",
+          "x-ms-dataverse-type": "StringType",
+          "maxLength": 100
+        },
+        "cr2b6_products": {
+          "type": "string",
+          "title": "Product",
+          "x-ms-dataverse-attribute": "cr2b6_products",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "cr2b6_productsname": {
+          "type": "string",
+          "title": "cr2b6_productsname",
+          "x-ms-dataverse-attribute": "cr2b6_productsname",
+          "x-ms-dataverse-type": "StringType",
+          "maxLength": 850
+        },
+        "cr2b6_purpose": {
+          "type": "string",
+          "title": "Purpose",
+          "x-ms-dataverse-attribute": "cr2b6_purpose",
+          "x-ms-dataverse-type": "PicklistType"
+        },
+        "cr2b6_purposename": {
+          "type": "string",
+          "title": "cr2b6_purposename",
+          "x-ms-dataverse-attribute": "cr2b6_purposename",
+          "x-ms-dataverse-type": "VirtualType"
+        },
+        "cr2b6_recoverycentrifuge": {
+          "type": "string",
+          "title": "% Recovery - Centrifuge",
+          "x-ms-dataverse-attribute": "cr2b6_recoverycentrifuge",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_recoveryhomogenizer": {
+          "type": "string",
+          "title": "% Recovery - Homogenizer",
+          "x-ms-dataverse-attribute": "cr2b6_recoveryhomogenizer",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_recoverymf": {
+          "type": "string",
+          "title": "% Recovery - MF",
+          "x-ms-dataverse-attribute": "cr2b6_recoverymf",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_recoverypredrying": {
+          "type": "string",
+          "title": "% Recovery - Pre Drying",
+          "x-ms-dataverse-attribute": "cr2b6_recoverypredrying",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_recoveryuf": {
+          "type": "string",
+          "title": "% Recovery - UF",
+          "x-ms-dataverse-attribute": "cr2b6_recoveryuf",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_solidsmassg": {
+          "type": "string",
+          "title": "Solids Mass (g)",
+          "x-ms-dataverse-attribute": "cr2b6_solidsmassg",
+          "x-ms-dataverse-type": "DecimalType"
+        },
+        "cr2b6_solidsmassg_date": {
+          "type": "string",
+          "title": "Solids Mass (g) (Last Updated On)",
+          "x-ms-dataverse-attribute": "cr2b6_solidsmassg_date",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_solidsmassg_state": {
+          "type": "string",
+          "title": "Solids Mass (g) (State)",
+          "x-ms-dataverse-attribute": "cr2b6_solidsmassg_state",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "cr2b6_trialplan": {
+          "type": "string",
+          "title": "Trial Plan",
+          "x-ms-dataverse-attribute": "cr2b6_trialplan",
+          "x-ms-dataverse-type": "FileType"
+        },
+        "cr2b6_trialplan_name": {
+          "type": "string",
+          "title": "cr2b6_trialplan_name",
+          "x-ms-dataverse-attribute": "cr2b6_trialplan_name",
+          "x-ms-dataverse-type": "StringType",
+          "maxLength": 200
+        },
+        "cr2b6_ufstarttime": {
+          "type": "string",
+          "title": "UF Start Time",
+          "x-ms-dataverse-attribute": "cr2b6_ufstarttime",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_ufstarttime_date": {
+          "type": "string",
+          "title": "UF Start Time (Last Updated On)",
+          "x-ms-dataverse-attribute": "cr2b6_ufstarttime_date",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "cr2b6_ufstarttime_state": {
+          "type": "string",
+          "title": "UF Start Time (State)",
+          "x-ms-dataverse-attribute": "cr2b6_ufstarttime_state",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "createdby": {
+          "type": "string",
+          "title": "Created By",
+          "x-ms-dataverse-attribute": "createdby",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "createdbyname": {
+          "type": "string",
+          "title": "createdbyname",
+          "x-ms-dataverse-attribute": "createdbyname",
+          "x-ms-dataverse-type": "StringType",
+          "maxLength": 100
+        },
+        "createdbyyominame": {
+          "type": "string",
+          "title": "createdbyyominame",
+          "x-ms-dataverse-attribute": "createdbyyominame",
+          "x-ms-dataverse-type": "StringType",
+          "required": true,
+          "maxLength": 100
+        },
+        "createdon": {
+          "type": "string",
+          "title": "Created On",
+          "x-ms-dataverse-attribute": "createdon",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "createdonbehalfby": {
+          "type": "string",
+          "title": "Created By (Delegate)",
+          "x-ms-dataverse-attribute": "createdonbehalfby",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "createdonbehalfbyname": {
+          "type": "string",
+          "title": "createdonbehalfbyname",
+          "x-ms-dataverse-attribute": "createdonbehalfbyname",
+          "x-ms-dataverse-type": "StringType",
+          "maxLength": 100
+        },
+        "createdonbehalfbyyominame": {
+          "type": "string",
+          "title": "createdonbehalfbyyominame",
+          "x-ms-dataverse-attribute": "createdonbehalfbyyominame",
+          "x-ms-dataverse-type": "StringType",
+          "required": true,
+          "maxLength": 100
+        },
+        "importsequencenumber": {
+          "type": "string",
+          "title": "Import Sequence Number",
+          "x-ms-dataverse-attribute": "importsequencenumber",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "modifiedby": {
+          "type": "string",
+          "title": "Modified By",
+          "x-ms-dataverse-attribute": "modifiedby",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "modifiedbyname": {
+          "type": "string",
+          "title": "modifiedbyname",
+          "x-ms-dataverse-attribute": "modifiedbyname",
+          "x-ms-dataverse-type": "StringType",
+          "maxLength": 100
+        },
+        "modifiedbyyominame": {
+          "type": "string",
+          "title": "modifiedbyyominame",
+          "x-ms-dataverse-attribute": "modifiedbyyominame",
+          "x-ms-dataverse-type": "StringType",
+          "required": true,
+          "maxLength": 100
+        },
+        "modifiedon": {
+          "type": "string",
+          "title": "Modified On",
+          "x-ms-dataverse-attribute": "modifiedon",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "modifiedonbehalfby": {
+          "type": "string",
+          "title": "Modified By (Delegate)",
+          "x-ms-dataverse-attribute": "modifiedonbehalfby",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "modifiedonbehalfbyname": {
+          "type": "string",
+          "title": "modifiedonbehalfbyname",
+          "x-ms-dataverse-attribute": "modifiedonbehalfbyname",
+          "x-ms-dataverse-type": "StringType",
+          "maxLength": 100
+        },
+        "modifiedonbehalfbyyominame": {
+          "type": "string",
+          "title": "modifiedonbehalfbyyominame",
+          "x-ms-dataverse-attribute": "modifiedonbehalfbyyominame",
+          "x-ms-dataverse-type": "StringType",
+          "required": true,
+          "maxLength": 100
+        },
+        "overriddencreatedon": {
+          "type": "string",
+          "title": "Record Created On",
+          "x-ms-dataverse-attribute": "overriddencreatedon",
+          "x-ms-dataverse-type": "DateTimeType"
+        },
+        "ownerid": {
+          "type": "string",
+          "title": "Owner",
+          "x-ms-dataverse-attribute": "ownerid",
+          "x-ms-dataverse-type": "OwnerType",
+          "required": true
+        },
+        "owneridname": {
+          "type": "string",
+          "title": "owneridname",
+          "x-ms-dataverse-attribute": "owneridname",
+          "x-ms-dataverse-type": "StringType",
+          "required": true,
+          "maxLength": 100
+        },
+        "owneridtype": {
+          "type": "string",
+          "title": "owneridtype",
+          "x-ms-dataverse-attribute": "owneridtype",
+          "x-ms-dataverse-type": "EntityNameType",
+          "required": true
+        },
+        "owneridyominame": {
+          "type": "string",
+          "title": "owneridyominame",
+          "x-ms-dataverse-attribute": "owneridyominame",
+          "x-ms-dataverse-type": "StringType",
+          "required": true,
+          "maxLength": 100
+        },
+        "owningbusinessunit": {
+          "type": "string",
+          "title": "Owning Business Unit",
+          "x-ms-dataverse-attribute": "owningbusinessunit",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "owningbusinessunitname": {
+          "type": "string",
+          "title": "owningbusinessunitname",
+          "x-ms-dataverse-attribute": "owningbusinessunitname",
+          "x-ms-dataverse-type": "StringType",
+          "required": true,
+          "maxLength": 100
+        },
+        "owningteam": {
+          "type": "string",
+          "title": "Owning Team",
+          "x-ms-dataverse-attribute": "owningteam",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "owninguser": {
+          "type": "string",
+          "title": "Owning User",
+          "x-ms-dataverse-attribute": "owninguser",
+          "x-ms-dataverse-type": "LookupType"
+        },
+        "statecode": {
+          "type": "string",
+          "title": "Status",
+          "x-ms-dataverse-attribute": "statecode",
+          "x-ms-dataverse-type": "StateType",
+          "required": true
+        },
+        "statecodename": {
+          "type": "string",
+          "title": "statecodename",
+          "x-ms-dataverse-attribute": "statecodename",
+          "x-ms-dataverse-type": "VirtualType"
+        },
+        "statuscode": {
+          "type": "string",
+          "title": "Status Reason",
+          "x-ms-dataverse-attribute": "statuscode",
+          "x-ms-dataverse-type": "StatusType"
+        },
+        "statuscodename": {
+          "type": "string",
+          "title": "statuscodename",
+          "x-ms-dataverse-attribute": "statuscodename",
+          "x-ms-dataverse-type": "VirtualType"
+        },
+        "timezoneruleversionnumber": {
+          "type": "string",
+          "title": "Time Zone Rule Version Number",
+          "x-ms-dataverse-attribute": "timezoneruleversionnumber",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "utcconversiontimezonecode": {
+          "type": "string",
+          "title": "UTC Conversion Time Zone Code",
+          "x-ms-dataverse-attribute": "utcconversiontimezonecode",
+          "x-ms-dataverse-type": "IntegerType"
+        },
+        "versionnumber": {
+          "type": "string",
+          "title": "Version Number",
+          "x-ms-dataverse-attribute": "versionnumber",
+          "x-ms-dataverse-type": "BigIntType"
+        }
+      },
+      "required": [
+        "cr2b6_batchesid",
+        "cr2b6_batchnumber",
+        "createdbyyominame",
+        "createdonbehalfbyyominame",
+        "modifiedbyyominame",
+        "modifiedonbehalfbyyominame",
+        "ownerid",
+        "owneridname",
+        "owneridtype",
+        "owneridyominame",
+        "owningbusinessunitname",
+        "statecode"
+      ]
+    }
+  }
+}

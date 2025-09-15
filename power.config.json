@@ -13,15 +13,25 @@
       "state": "Configured",
       "instanceUrl": "https://org8ef10ef2.crm.dynamics.com/",
       "webApiVersion": "v9.0",
+      "version": "v9.0",
+      "environmentVariableName": "",
       "dataSources": {
-        "cr2b6_equipments": {
-          "entitySetName": "cr2b6_equipments",
-          "logicalName": "cr2b6_equipment",
+        "cr2b6_batcheses": {
+          "entitySetName": "cr2b6_batcheses",
+          "logicalName": "cr2b6_batches",
+          "isHidden": false
+        },
+        "cr2b6_systems": {
+          "entitySetName": "cr2b6_systems",
+          "logicalName": "cr2b6_system",
+          "isHidden": false
+        },
+        "cr2b6_operations": {
+          "entitySetName": "cr2b6_operations",
+          "logicalName": "cr2b6_operation",
           "isHidden": false
         }
-      },
-      "version": "v9.0",
-      "environmentVariableName": ""
+      }
     }
   }
 }

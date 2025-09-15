@@ -4,4 +4,12 @@
  */
 
 // Models
-export * as cr2b6_equipmentsModel from './models/cr2b6_equipmentsModel';
+export * as CommonModels from "./models/CommonModels";
+export * as cr2b6_batchesesModel from "./models/cr2b6_batchesesModel";
+export * as cr2b6_operationsModel from "./models/cr2b6_operationsModel";
+export * as cr2b6_systemsModel from "./models/cr2b6_systemsModel";
+
+// Services
+export * from "./services/cr2b6_batchesesService";
+export * from "./services/cr2b6_systemsService";
+export * from "./services/cr2b6_operationsService";
