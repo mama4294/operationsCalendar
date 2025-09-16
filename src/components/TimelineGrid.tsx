@@ -479,8 +479,21 @@ export default function TimelineGrid() {
   console.log("Items after search filter:", displayedItems);
 
   // Filter groups (view mode lazily filters empty groups in time window)
-  // But always show equipment that exists in the system
-  const filteredGroups = groups;
+  // In edit mode, always show all equipment
+  // In view mode, only show equipment that has operations in the current time window
+  const filteredGroups = editMode
+    ? groups
+    : groups.filter((group) => {
+        // Check if this group has any operations in the visible time window
+        // Use the search-filtered items to respect search criteria
+        const hasOperationsInWindow = displayedItems.some(
+          (item) =>
+            String(item.group) === String(group.id) &&
+            item.start_time < visibleTimeEnd &&
+            item.end_time > visibleTimeStart
+        );
+        return hasOperationsInWindow;
+      });
 
   // Apply virtual window
   const maxStart = Math.max(0, filteredGroups.length - groupsPerPage);
