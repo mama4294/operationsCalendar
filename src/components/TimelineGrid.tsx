@@ -27,12 +27,8 @@ import type { cr2b6_batcheses } from "../generated/models/cr2b6_batchesesModel";
 import type { cr2b6_systems } from "../generated/models/cr2b6_systemsModel";
 import type { cr2b6_operations } from "../generated/models/cr2b6_operationsModel";
 import { dataProvider } from "../services/DataProvider";
+import { usePowerReady } from "./PowerProvider";
 // types are available in models if needed
-
-// Helper: ensure each equipment has an order field we can sort & mutate
-interface OrderedEquipment extends cr2b6_systems {
-  __order?: number;
-}
 
 // Helper to alphabetically sort batches by batch number (case-insensitive),
 // falling back to the primary key if batch number missing. Stable for equal keys.
@@ -56,6 +52,7 @@ export default function TimelineGrid() {
     setEndDate,
     jumpToNow,
   } = useViewport("month");
+  const powerReady = usePowerReady();
   const [groups, setGroups] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -78,7 +75,7 @@ export default function TimelineGrid() {
   const [operationsToDelete, setOperationsToDelete] = useState<
     cr2b6_operations[]
   >([]);
-  const [equipment, setEquipment] = useState<OrderedEquipment[]>([]);
+  const [equipment, setEquipment] = useState<cr2b6_systems[]>([]);
   const [batches, setBatches] = useState<cr2b6_batcheses[]>([]);
   const [operations, setOperations] = useState<cr2b6_operations[]>([]);
   // History stacks for undo/redo of operations
@@ -132,11 +129,11 @@ export default function TimelineGrid() {
     setItems(ops.map((o) => createTimelineItem(o)));
   };
 
-  const rebuildGroupsFromEquipment = (eq: OrderedEquipment[]) => {
+  const rebuildGroupsFromEquipment = (eq: cr2b6_systems[]) => {
     setGroups(
       eq
         .slice()
-        .sort((a, b) => (a.__order ?? 0) - (b.__order ?? 0))
+        .sort((a, b) => (a.cr2b6_order ?? 0) - (b.cr2b6_order ?? 0))
         .map((g: any) => ({
           id: g.cr2b6_systemid,
           title: g.cr2b6_description,
@@ -278,6 +275,8 @@ export default function TimelineGrid() {
   };
 
   useEffect(() => {
+    if (!powerReady) return;
+
     let mounted = true;
     (async () => {
       const [eq, ops, batches] = await Promise.all([
@@ -285,6 +284,7 @@ export default function TimelineGrid() {
         dataProvider.getOperations(startDate, endDate),
         dataProvider.getBatches(),
       ]);
+      console.log("Equipment:", eq);
       console.log("Batches:", batches);
       const batchColorById: Record<string, string> = {};
       batches.forEach((b: cr2b6_batcheses) => {
@@ -294,17 +294,17 @@ export default function TimelineGrid() {
       if (!mounted) return;
 
       // Attach a stable order (persist existing order if present, else index)
-      const withOrder: OrderedEquipment[] = (eq as cr2b6_systems[]).map(
+      const withOrder: cr2b6_systems[] = (eq as cr2b6_systems[]).map(
         (e, i) => ({ ...e, __order: (e as any).cr2b6_order ?? i })
       );
-      withOrder.sort((a, b) => (a.__order ?? 0) - (b.__order ?? 0));
+      withOrder.sort((a, b) => (a.cr2b6_order ?? 0) - (b.cr2b6_order ?? 0));
       setEquipment(withOrder);
       setBatches(sortBatches(batches));
       setOperations(ops as any);
 
       const orderedForGroups = withOrder
         .slice()
-        .sort((a, b) => (a.__order ?? 0) - (b.__order ?? 0));
+        .sort((a, b) => (a.cr2b6_order ?? 0) - (b.cr2b6_order ?? 0));
       setGroups(
         orderedForGroups.map((g: any) => ({
           id: g.cr2b6_systemid,
@@ -314,6 +314,9 @@ export default function TimelineGrid() {
       );
 
       console.log("Operations:", ops);
+      console.log("Operations count:", ops.length);
+      console.log("First operation:", ops[0]);
+      console.log("Operations system values:", ops.map(o => ({ id: o.cr2b6_operationid ?? o.cr2b6_id, system: o.cr2b6_system })));
       setItems(
         (ops as unknown as cr2b6_operations[]).map((o) => ({
           id: String(o.cr2b6_operationid ?? o.cr2b6_id),
@@ -344,11 +347,16 @@ export default function TimelineGrid() {
           },
         }))
       );
+      console.log("Items set:", (ops as unknown as cr2b6_operations[]).map((o) => ({
+        id: String(o.cr2b6_operationid ?? o.cr2b6_id),
+        group: o.cr2b6_system,
+        title: o.cr2b6_description,
+      })));
     })();
     return () => {
       mounted = false;
     };
-  }, [startDate, endDate]);
+  }, [startDate, endDate, powerReady]);
 
   // Recalculate groupsPerPage based on container height & lineHeight (40) when size changes
   useEffect(() => {
@@ -369,6 +377,7 @@ export default function TimelineGrid() {
       // Allow an extra row if there's > 70% of a row free
       const raw = usable / GROUP_LINE_HEIGHT;
       let per = Math.max(3, Math.floor(raw + (raw % 1 > 0.7 ? 1 : 0)));
+      console.log("groupsPerPage calculation - el.clientHeight:", el.clientHeight, "total:", total, "headerH:", headerH, "usable:", usable, "raw:", raw, "per:", per);
       setGroupsPerPage(per);
     };
     const resizeObserver = new ResizeObserver(() => compute());
@@ -415,19 +424,11 @@ export default function TimelineGrid() {
       batchMatch || typeMatch || equipmentMatch || titleMatch || descMatch
     );
   });
+  console.log("Items after search filter:", displayedItems);
 
   // Filter groups (view mode lazily filters empty groups in time window)
-  const filteredGroups = editMode
-    ? groups
-    : groups.filter((g) =>
-        displayedItems.some((it) => {
-          const matchesGroup = String(it.group) === String(g.id);
-          if (!matchesGroup) return false;
-          const itemStart = Number(it.start_time);
-          const itemEnd = Number(it.end_time);
-          return itemEnd >= visibleTimeStart && itemStart <= visibleTimeEnd;
-        })
-      );
+  // But always show equipment that exists in the system
+  const filteredGroups = groups;
 
   // Apply virtual window
   const maxStart = Math.max(0, filteredGroups.length - groupsPerPage);
@@ -442,35 +443,37 @@ export default function TimelineGrid() {
   displayedItems = displayedItems.filter((it) =>
     visibleGroupIds.has(String(it.group))
   );
+  console.log("Items after visible group filter:", displayedItems);
+  console.log("Visible group IDs:", Array.from(visibleGroupIds));
 
   // Inject placeholder if no items to display
-  if (displayedItems.length === 0) {
-    displayedGroups = [
-      {
-        id: "placeholder",
-        title: "No operations",
-        rightTitle: "",
-      },
-    ];
-    displayedItems = [
-      {
-        id: "placeholder-item",
-        group: "placeholder",
-        title: "No operations scheduled",
-        start_time: visibleTimeStart,
-        end_time: visibleTimeEnd,
-        itemProps: {
-          style: {
-            background: "#f3f2f1",
-            color: "#888",
-            fontStyle: "italic",
-            border: "none",
-            pointerEvents: "none",
-          },
-        },
-      },
-    ];
-  }
+  // if (displayedItems.length === 0) {
+  //   displayedGroups = [
+  //     {
+  //       id: "placeholder",
+  //       title: "No operations",
+  //       rightTitle: "",
+  //     },
+  //   ];
+  //   displayedItems = [
+  //     {
+  //       id: "placeholder-item",
+  //       group: "placeholder",
+  //       title: "No operations scheduled",
+  //       start_time: visibleTimeStart,
+  //       end_time: visibleTimeEnd,
+  //       itemProps: {
+  //         style: {
+  //           background: "#f3f2f1",
+  //           color: "#888",
+  //           fontStyle: "italic",
+  //           border: "none",
+  //           pointerEvents: "none",
+  //         },
+  //       },
+  //     },
+  //   ];
+  // }
 
   const handleTimeChange = (
     visibleTimeStart: number,
@@ -1134,6 +1137,8 @@ export default function TimelineGrid() {
 
   // Debug logging
   console.log("Timeline render - groups:", groups, "items:", items);
+  console.log("Timeline render - displayedGroups:", displayedGroups, "displayedItems:", displayedItems);
+  console.log("Timeline render - groupsPerPage:", groupsPerPage, "groupOffset:", groupOffset, "filteredGroups.length:", filteredGroups.length);
 
   return (
     <div
@@ -1462,7 +1467,7 @@ export default function TimelineGrid() {
                   arr.splice(toIdx, 0, moved);
                   // Reassign order numbers
                   arr.forEach((e, i) => {
-                    e.__order = i;
+                    e.cr2b6_order = i;
                     (e as any).cr2b6_order = i;
                   });
                   // Rebuild groups to reflect new order
@@ -1471,7 +1476,9 @@ export default function TimelineGrid() {
                   setGroups(
                     arr
                       .slice()
-                      .sort((a, b) => (a.__order ?? 0) - (b.__order ?? 0))
+                      .sort(
+                        (a, b) => (a.cr2b6_order ?? 0) - (b.cr2b6_order ?? 0)
+                      )
                       .map((g) => ({
                         id: g.cr2b6_systemid,
                         title: g.cr2b6_description,

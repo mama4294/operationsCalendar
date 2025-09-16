@@ -8,6 +8,40 @@ import type {
 import type { cr2b6_batcheses } from "../generated/models/cr2b6_batchesesModel";
 import type { cr2b6_systems } from "../generated/models/cr2b6_systemsModel";
 import type { cr2b6_operations } from "../generated/models/cr2b6_operationsModel";
+import { showErrorToast } from "../utils/toastUtils";
+
+// Safely extract a readable error message from Dataverse/SDK error payloads
+function formatErrorMessage(defaultMessage: string, error?: unknown): string {
+  try {
+    // Common SDK shape: { message: string(JSON) | string, status, requestId }
+    const errObj = (error ?? {}) as any;
+    const raw = errObj?.message ?? error;
+    if (typeof raw === "string") {
+      // Try JSON first (Dataverse often returns JSON string in message)
+      try {
+        const parsed = JSON.parse(raw);
+        const msg =
+          parsed?.error?.message ||
+          parsed?.message ||
+          parsed?.error?.innererror?.message;
+        if (msg && typeof msg === "string") {
+          return `${defaultMessage}: ${msg}`;
+        }
+      } catch {
+        // Not JSON, use raw string
+        return `${defaultMessage}: ${raw}`;
+      }
+    } else if (raw && typeof raw === "object") {
+      const msg = (raw as any)?.error?.message || (raw as any)?.message;
+      if (msg && typeof msg === "string") {
+        return `${defaultMessage}: ${msg}`;
+      }
+    }
+  } catch {
+    // fall through to default
+  }
+  return defaultMessage;
+}
 
 // Centralized access to the Power Apps Data client
 export function getDataClient() {
@@ -97,21 +131,26 @@ class DataverseDataProvider implements IDataProvider {
           (a.cr2b6_order ?? 0) - (b.cr2b6_order ?? 0)
       );
     }
-    throw new Error(result.error?.message || "Failed to get equipment");
+  const msg = formatErrorMessage("Failed to get equipment", result.error);
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 
   async getOperations(
-    startDate: Date,
-    endDate: Date
+    _startDate: Date,
+    _endDate: Date
   ): Promise<cr2b6_operations[]> {
-    const filter = `cr2b6_starttime le ${endDate.toISOString()} and cr2b6_endtime ge ${startDate.toISOString()}`;
-    const result = await getAll<cr2b6_operations>(DATASOURCES.operations, {
-      filter,
-    });
+    // Temporarily remove date filter to see all operations
+    // const filter = `cr2b6_starttime le ${endDate.toISOString()} and cr2b6_endtime ge ${startDate.toISOString()}`;
+    const result = await getAll<cr2b6_operations>(DATASOURCES.operations); // , { filter }
+    console.log("getOperations result:", result);
     if (result.success) {
+      console.log("getOperations raw data:", result.data);
       return result.data;
     }
-    throw new Error(result.error?.message || "Failed to get operations");
+  const msg = formatErrorMessage("Failed to get operations", result.error);
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 
   async getBatches(): Promise<cr2b6_batcheses[]> {
@@ -119,7 +158,9 @@ class DataverseDataProvider implements IDataProvider {
     if (result.success) {
       return result.data;
     }
-    throw new Error(result.error?.message || "Failed to get batches");
+  const msg = formatErrorMessage("Failed to get batches", result.error);
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 
   async saveEquipment(
@@ -145,45 +186,85 @@ class DataverseDataProvider implements IDataProvider {
         return result.data;
       }
     }
-    throw new Error("Failed to save equipment");
+  const msg = "Failed to save equipment";
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 
   async deleteEquipment(): Promise<void> {
-    // Equipment deletion disabled by policy
-    throw new Error("Equipment deletion is disabled.");
+  // Equipment deletion disabled by policy
+  const msg = "Equipment deletion is disabled.";
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 
   async saveOperation(
     operation: Partial<cr2b6_operations>
   ): Promise<cr2b6_operations> {
+    console.log("saveOperation called with:", operation);
+    
+    // Prepare the operation data for save
+    const operationData = { ...operation };
+    
+    // For create operations, ensure required system fields are set
+    if (!operation.cr2b6_operationid && !operation.cr2b6_id) {
+      operationData.statecode = operationData.statecode || "0"; // Active state
+      // Other system fields will be set by Dataverse
+    }
+    
+    // Ensure dates are in the correct format
+    // Note: Power Apps SDK should handle Date objects correctly
+    // if (operationData.cr2b6_starttime instanceof Date) {
+    //   operationData.cr2b6_starttime = operationData.cr2b6_starttime.toISOString();
+    // }
+    // if (operationData.cr2b6_endtime instanceof Date) {
+    //   operationData.cr2b6_endtime = operationData.cr2b6_endtime.toISOString();
+    // }
+    
+    console.log("Prepared operation data:", operationData);
+    
     if (operation.cr2b6_operationid || operation.cr2b6_id) {
       // Update
       const id = operation.cr2b6_operationid || operation.cr2b6_id!;
+      console.log("Attempting update for id:", id);
       const result = await update<Partial<cr2b6_operations>, cr2b6_operations>(
         DATASOURCES.operations,
         id,
-        operation
+        operationData
       );
+      console.log("Update result:", result);
       if (result.success) {
         return result.data;
+      } else {
+        console.error("Update failed:", result.error);
+        showErrorToast(formatErrorMessage("Failed to update operation", result.error));
       }
     } else {
       // Create
+      console.log("Attempting create");
       const result = await create<Partial<cr2b6_operations>, cr2b6_operations>(
         DATASOURCES.operations,
-        operation
+        operationData
       );
+      console.log("Create result:", result);
       if (result.success) {
         return result.data;
+      } else {
+        console.error("Create failed:", result.error);
+        showErrorToast(formatErrorMessage("Failed to create operation", result.error));
       }
     }
-    throw new Error("Failed to save operation");
+  const msg = "Failed to save operation";
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 
   async deleteOperation(id: string): Promise<void> {
     const result = await remove(DATASOURCES.operations, id);
     if (!result.success) {
-      throw new Error(result.error?.message || "Failed to delete operation");
+      const msg = formatErrorMessage("Failed to delete operation", result.error);
+      showErrorToast(msg);
+      throw new Error(msg);
     }
   }
 
@@ -208,12 +289,16 @@ class DataverseDataProvider implements IDataProvider {
         return result.data;
       }
     }
-    throw new Error("Failed to save batch");
+  const msg = "Failed to save batch";
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 
   async deleteBatch(): Promise<void> {
-    // Batch deletion disabled
-    throw new Error("Batch deletion is disabled.");
+  // Batch deletion disabled
+  const msg = "Batch deletion is disabled.";
+  showErrorToast(msg);
+  throw new Error(msg);
   }
 }
 
