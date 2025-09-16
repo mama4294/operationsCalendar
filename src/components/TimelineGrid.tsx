@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from "react";
 // Constants for virtual scrolling sizing
 const GROUP_LINE_HEIGHT = 40; // must match timeline lineHeight
 const ITEM_HEIGHT_RATIO = 0.9; // tuned for visual vertical centering
-import { Tooltip } from "@fluentui/react-components";
 import Timeline, {
   TimelineMarkers,
   TodayMarker,
@@ -1774,38 +1773,31 @@ export default function TimelineGrid() {
                 data-op-id={item.id}
               >
                 {canResize && <div key={leftKey} {...leftResizeProps} />}
-                <Tooltip
-                  content={`${item.description}${
-                    item.batchId ? ` (Batch: ${item.batchId})` : ""
-                  }`}
-                  relationship="description"
+                <div
+                  style={{
+                    height: "100%",
+                    position: "relative",
+                    paddingLeft: 4,
+                    paddingRight: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    overflow: "hidden",
+                    boxSizing: "border-box",
+                  }}
                 >
                   <div
                     style={{
-                      height: "100%",
-                      position: "relative",
-                      paddingLeft: 4,
-                      paddingRight: 4,
-                      display: "flex",
-                      alignItems: "center",
+                      fontSize: "12px",
+                      color: "white",
+                      fontWeight: 500,
+                      textOverflow: "ellipsis",
                       overflow: "hidden",
-                      boxSizing: "border-box",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "white",
-                        fontWeight: 500,
-                        textOverflow: "ellipsis",
-                        overflow: "hidden",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {item.title}
-                    </div>
+                    {item.title}
                   </div>
-                </Tooltip>
+                </div>
                 {canResize && <div key={rightKey} {...rightResizeProps} />}
               </div>
             );
