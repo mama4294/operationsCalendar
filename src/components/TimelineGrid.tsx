@@ -1120,6 +1120,25 @@ export default function TimelineGrid() {
       pushHistory();
       const duplicatedOperations: cr2b6_operations[] = [];
 
+      // Convert batch number to batch GUID if needed
+      let actualBatchGuid: string | null = null;
+      if (batchId) {
+        // Check if batchId is already a GUID (contains hyphens) or a batch number
+        if (batchId.includes("-") && !batchId.match(/^[0-9a-f-]{36}$/i)) {
+          // It's a batch number like "25-MIA-01", find the corresponding GUID
+          const batch = batches.find(
+            (b) => (b.cr2b6_batchnumber || b.cr2b6_batchesid) === batchId
+          );
+          actualBatchGuid = batch?.cr2b6_batchesid || null;
+          console.log(
+            `Converting batch number "${batchId}" to GUID "${actualBatchGuid}"`
+          );
+        } else {
+          // Assume it's already a GUID
+          actualBatchGuid = batchId;
+        }
+      }
+
       for (const operationId of operationsToDuplicate) {
         // Find the operation to duplicate
         const originalOperation = operations.find(
@@ -1129,13 +1148,18 @@ export default function TimelineGrid() {
         if (originalOperation) {
           // Create a new operation with the same properties but new ID and batch
           const newOperation: Partial<cr2b6_operations> = {
-            cr2b6_system: originalOperation.cr2b6_system,
-            cr2b6_batch: batchId || undefined,
+            // Use the system GUID from the original operation's lookup value
+            cr2b6_system:
+              (originalOperation as any)._cr2b6_system_value ||
+              originalOperation.cr2b6_system,
+            cr2b6_batch: actualBatchGuid || undefined,
             cr2b6_starttime: new Date(
-              originalOperation.cr2b6_starttime.getTime() + 24 * 60 * 60 * 1000
+              new Date(originalOperation.cr2b6_starttime).getTime() +
+                24 * 60 * 60 * 1000
             ), // Add 1 day
             cr2b6_endtime: new Date(
-              originalOperation.cr2b6_endtime.getTime() + 24 * 60 * 60 * 1000
+              new Date(originalOperation.cr2b6_endtime).getTime() +
+                24 * 60 * 60 * 1000
             ), // Add 1 day
             cr2b6_type: originalOperation.cr2b6_type,
             cr2b6_description: originalOperation.cr2b6_description,
@@ -1163,6 +1187,49 @@ export default function TimelineGrid() {
           duplicatedOperations.map((op) => getOperationId(op))
         );
         setSelectedItems(newIds);
+
+        // Ensure duplicated operations are visible by adjusting the group offset
+        // Find the equipment groups of the duplicated operations
+        const duplicatedGroupIds = new Set(
+          duplicatedOperations.map(
+            (op) => (op as any)._cr2b6_system_value || op.cr2b6_system
+          )
+        );
+
+        // Find the indices of these groups in the groups array
+        const groupIndices = Array.from(duplicatedGroupIds)
+          .map((groupId) =>
+            groups.findIndex((g) => String(g.id) === String(groupId))
+          )
+          .filter((index) => index !== -1);
+
+        if (groupIndices.length > 0) {
+          const minGroupIndex = Math.min(...groupIndices);
+          const maxGroupIndex = Math.max(...groupIndices);
+
+          // Check if any of the duplicated operations' groups are outside the current visible window
+          const currentOffset = clampedOffset;
+          const currentMaxVisible = currentOffset + groupsPerPage - 1;
+
+          if (
+            minGroupIndex < currentOffset ||
+            maxGroupIndex > currentMaxVisible
+          ) {
+            // Adjust the offset to ensure the duplicated operations are visible
+            // Center the view around the duplicated operations if possible
+            const targetOffset = Math.max(
+              0,
+              Math.min(
+                minGroupIndex - Math.floor(groupsPerPage / 4), // Show some context above
+                groups.length - groupsPerPage
+              )
+            );
+            setGroupOffset(targetOffset);
+            console.log(
+              `Adjusted group offset from ${currentOffset} to ${targetOffset} to show duplicated operations`
+            );
+          }
+        }
       }
       // Clear the queued operations to duplicate
       setOperationsToDuplicate([]);
