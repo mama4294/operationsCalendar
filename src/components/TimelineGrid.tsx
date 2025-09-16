@@ -320,28 +320,29 @@ export default function TimelineGrid() {
         "Operations system values:",
         ops.map((o) => ({
           id: o.cr2b6_operationid ?? o.cr2b6_id,
-          system: o.cr2b6_system,
+          system: (o as any)._cr2b6_system_value || o.cr2b6_system,
         }))
       );
       setItems(
         (ops as unknown as cr2b6_operations[]).map((o) => ({
           id: String(o.cr2b6_operationid ?? o.cr2b6_id),
-          group: o.cr2b6_system,
+          group: (o as any)._cr2b6_system_value || o.cr2b6_system,
           title: o.cr2b6_description,
           description: o.cr2b6_description, // Add description for tooltip
           type: o.cr2b6_type,
-          batchId: o.cr2b6_batch ?? null, // expects batchesid
+          batchId: (o as any)._cr2b6_batch_value || o.cr2b6_batch, // expects batchesid
           start_time: moment(o.cr2b6_starttime).valueOf(),
           end_time: moment(o.cr2b6_endtime).valueOf(),
           itemProps: {
             style: (() => {
-              const key = o.cr2b6_batch ? String(o.cr2b6_batch) : undefined;
+              const batchValue = (o as any)._cr2b6_batch_value || o.cr2b6_batch;
+              const key = batchValue ? String(batchValue) : undefined;
               const bgColor = key ? batchColorById[key] || "#999" : "#4a4b54ff";
               console.log(
                 "Operation",
                 String(o.cr2b6_operationid ?? o.cr2b6_id),
                 "batch",
-                o.cr2b6_batch,
+                batchValue,
                 "color:",
                 bgColor
               );
@@ -357,7 +358,7 @@ export default function TimelineGrid() {
         "Items set:",
         (ops as unknown as cr2b6_operations[]).map((o) => ({
           id: String(o.cr2b6_operationid ?? o.cr2b6_id),
-          group: o.cr2b6_system,
+          group: (o as any)._cr2b6_system_value || o.cr2b6_system,
           title: o.cr2b6_description,
         }))
       );
