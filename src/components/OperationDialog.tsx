@@ -59,7 +59,35 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
   // Update form data when operation changes
   useEffect(() => {
     if (operation) {
-      setFormData(operation);
+      // Convert numeric option set values back to text labels for the dropdown
+      const getTypeLabel = (numericType: any): string => {
+        if (typeof numericType === "string") return numericType;
+        const typeMap: Record<number, string> = {
+          566210000: "Production",
+          566210001: "Maintenance",
+          566210002: "Engineering",
+          566210003: "Miscellaneous",
+        };
+        return typeMap[numericType] || "Production";
+      };
+
+      setFormData({
+        ...operation,
+        // Use the actual lookup value from Dataverse
+        cr2b6_system:
+          (operation as any)._cr2b6_system_value || operation.cr2b6_system,
+        cr2b6_batch:
+          (operation as any)._cr2b6_batch_value || operation.cr2b6_batch,
+        // Convert numeric type back to text label
+        cr2b6_type: getTypeLabel(operation.cr2b6_type),
+        // Convert string dates from Dataverse to Date objects
+        cr2b6_starttime: operation.cr2b6_starttime
+          ? new Date(operation.cr2b6_starttime)
+          : new Date(),
+        cr2b6_endtime: operation.cr2b6_endtime
+          ? new Date(operation.cr2b6_endtime)
+          : new Date(Date.now() + 2 * 60 * 60 * 1000),
+      });
     } else {
       setFormData({
         cr2b6_system: "",
