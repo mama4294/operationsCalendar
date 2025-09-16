@@ -288,9 +288,11 @@ export default function TimelineGrid() {
       console.log("Batches:", batches);
       const batchColorById: Record<string, string> = {};
       batches.forEach((b: cr2b6_batcheses) => {
-        const bid = b.cr2b6_batchnumber ?? b.cr2b6_batchesid;
+        // Use the batch GUID as the key since that's what operations reference
+        const bid = b.cr2b6_batchesid;
         if (bid) batchColorById[String(bid)] = getBatchColor(b);
       });
+      console.log("Batch color mapping:", batchColorById);
       if (!mounted) return;
 
       // Attach a stable order (persist existing order if present, else index)
