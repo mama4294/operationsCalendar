@@ -185,27 +185,28 @@ class DataverseDataProvider implements IDataProvider {
   async saveEquipment(
     equipment: Partial<cr2b6_systems>
   ): Promise<cr2b6_systems> {
+    // Only send required fields for creation
+    const payload: Record<string, any> = {
+      cr2b6_tag: equipment.cr2b6_tag ?? "",
+      cr2b6_description: equipment.cr2b6_description ?? ""
+    };
+    let result;
     if (equipment.cr2b6_systemid) {
-      // Update
-      const result = await update<Partial<cr2b6_systems>, cr2b6_systems>(
+      result = await update<Partial<cr2b6_systems>, cr2b6_systems>(
         DATASOURCES.systems,
         equipment.cr2b6_systemid,
-        equipment
+        payload
       );
-      if (result.success) {
-        return result.data;
-      }
     } else {
-      // Create
-      const result = await create<Partial<cr2b6_systems>, cr2b6_systems>(
+      result = await create<Partial<cr2b6_systems>, cr2b6_systems>(
         DATASOURCES.systems,
-        equipment
+        payload
       );
-      if (result.success) {
-        return result.data;
-      }
     }
-    const msg = "Failed to save equipment";
+    if (result.success) {
+      return result.data;
+    }
+    const msg = formatErrorMessage("Failed to save equipment", result.error);
     showErrorToast(msg);
     throw new Error(msg);
   }
