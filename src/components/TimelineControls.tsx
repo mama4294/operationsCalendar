@@ -145,13 +145,22 @@ export default function TimelineControls({
 
       <ToolbarDivider />
 
+
       <Button
         appearance="subtle"
-        icon={<CalendarLtr24Regular />}
-        onClick={onJumpToNow}
-      >
-        Now
-      </Button>
+        icon={<ZoomOut24Regular />}
+        onClick={handleZoomOut}
+        disabled={!canZoomOut}
+        aria-label="Zoom out"
+      />
+
+            <Button
+        appearance="subtle"
+        icon={<ZoomIn24Regular />}
+        onClick={handleZoomIn}
+        disabled={!canZoomIn}
+        aria-label="Zoom in"
+      />
 
       {/* Zoom Selector */}
       <Dropdown
@@ -170,115 +179,37 @@ export default function TimelineControls({
 
       <Button
         appearance="subtle"
-        icon={<ZoomIn24Regular />}
-        onClick={handleZoomIn}
-        disabled={!canZoomIn}
-        aria-label="Zoom in"
-      />
-
-      <Button
-        appearance="subtle"
-        icon={<ZoomOut24Regular />}
-        onClick={handleZoomOut}
-        disabled={!canZoomOut}
-        aria-label="Zoom out"
-      />
+        icon={<CalendarLtr24Regular />}
+        onClick={onJumpToNow}
+      >
+        Now
+      </Button>
 
       <ToolbarDivider />
+  
 
       {/* right side spacer to push File menu to far right */}
-      <div className={styles.spacer} />
+      <div className={styles.spacer}></div>
 
-      {/* File menu at far right */}
-      {(onExportDb || onImportDb) && (
-        <Menu>
-          <MenuTrigger disableButtonEnhancement>
-            <Button appearance="subtle" icon={<MoreHorizontal24Regular />}>
-              File
-            </Button>
-          </MenuTrigger>
-          <MenuPopover>
-            <MenuList>
-              {onExportDb && (
-                <MenuItem
-                  onClick={async () => {
-                    try {
-                      await onExportDb();
-                      dispatchToast(
-                        <Toast>
-                          <ToastTitle>Database exported</ToastTitle>
-                        </Toast>,
-                        { intent: "success" }
-                      );
-                    } catch (e) {
-                      dispatchToast(
-                        <Toast>
-                          <ToastTitle>Export failed</ToastTitle>
-                        </Toast>,
-                        { intent: "error" }
-                      );
-                    }
-                  }}
-                >
-                  Export DB
-                </MenuItem>
-              )}
-              {onImportDb && (
-                <MenuItem
-                  onClick={() => {
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.accept = ".db,application/octet-stream";
-                    input.onchange = async (e) => {
-                      const file = (e.target as HTMLInputElement).files?.[0];
-                      if (!file) return;
-                      try {
-                        await onImportDb(file);
-                        dispatchToast(
-                          <Toast>
-                            <ToastTitle>Database imported</ToastTitle>
-                          </Toast>,
-                          { intent: "success" }
-                        );
-                      } catch (err) {
-                        dispatchToast(
-                          <Toast>
-                            <ToastTitle>Import failed</ToastTitle>
-                          </Toast>,
-                          { intent: "error" }
-                        );
-                      }
-                    };
-                    input.click();
-                  }}
-                >
-                  Import DB
-                </MenuItem>
-              )}
-            </MenuList>
-          </MenuPopover>
-        </Menu>
+    {editMode && (
+        <>
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Button appearance="subtle" icon={<Add24Regular />}>Add</Button>
+            </MenuTrigger>
+            <MenuPopover>
+              <MenuList>
+                <MenuItem icon={<Add24Regular />} onClick={onAddEquipment}>Add Equipment</MenuItem>
+                <MenuItem icon={<Add24Regular />} onClick={onAddOperation}>Add Operation</MenuItem>
+                <MenuItem icon={<Grid24Regular />} onClick={onManageBatches}>Manage Batches</MenuItem>
+              </MenuList>
+            </MenuPopover>
+          </Menu>
+          <ToolbarDivider />
+        </>
       )}
 
-      {/* Toaster for confirmations */}
-      <Toaster toasterId={toasterId} />
-
-      {/* Edit/View Mode Selector */}
-      <Dropdown
-        className={styles.select}
-        aria-labelledby="mode-label"
-        placeholder="Select mode"
-        value={editMode ? "Edit Mode" : "View Mode"}
-        onOptionSelect={(_, data) => setEditMode(data.optionValue === "edit")}
-      >
-        {modeOptions.map((option) => (
-          <Option key={option.key} value={option.key}>
-            {option.text}
-          </Option>
-        ))}
-      </Dropdown>
-
-      {editMode && (
+   {editMode && (
         <>
           {/* Undo / Redo */}
           {(onUndo || onRedo) && (
@@ -303,31 +234,30 @@ export default function TimelineControls({
             </>
           )}
 
-          <Button
-            appearance="subtle"
-            icon={<Add24Regular />}
-            onClick={onAddEquipment}
-          >
-            Add Equipment
-          </Button>
-
-          <Button
-            appearance="subtle"
-            icon={<Add24Regular />}
-            onClick={onAddOperation}
-          >
-            Add Operation
-          </Button>
-
-          <Button
-            appearance="subtle"
-            icon={<Grid24Regular />}
-            onClick={onManageBatches}
-          >
-            Manage Batches
-          </Button>
         </>
       )}
+
+
+
+      {/* Toaster for confirmations */}
+      <Toaster toasterId={toasterId} />
+
+      {/* Edit/View Mode Selector */}
+      <Dropdown
+        className={styles.select}
+        aria-labelledby="mode-label"
+        placeholder="Select mode"
+        value={editMode ? "Edit Mode" : "View Mode"}
+        onOptionSelect={(_, data) => setEditMode(data.optionValue === "edit")}
+      >
+        {modeOptions.map((option) => (
+          <Option key={option.key} value={option.key}>
+            {option.text}
+          </Option>
+        ))}
+      </Dropdown>
+
+   
     </Toolbar>
   );
 }
