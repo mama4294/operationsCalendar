@@ -14,6 +14,7 @@ import "react-calendar-timeline/style.css";
 import "../styles/Timeline.css";
 import moment from "moment";
 import { useViewport } from "../hooks/useViewport";
+import type { ZoomLevel } from "../hooks/useViewport";
 import TimelineControls from "./TimelineControls";
 import { getBatchColor } from "../services/batchColor";
 import { EquipmentDialog } from "./EquipmentDialog";
@@ -1602,8 +1603,127 @@ export default function TimelineGrid() {
         onWheel={(e) => {
           // Always prevent page scroll while over timeline area
           e.preventDefault();
+          // Zoom with ctrl/cmd + wheel
+          if (e.ctrlKey || e.metaKey) {
+            // Only zoom if wheel delta is significant
+            if (Math.abs(e.deltaY) > 10) {
+              // Calculate center of current view
+              const currentStart = visibleTimeStart;
+              const currentEnd = visibleTimeEnd;
+              const currentCenter = (currentStart + currentEnd) / 2;
+              if (e.deltaY < 0) {
+                // Zoom in (go to next finer zoom level)
+                setZoom((prevZoom) => {
+                  const zoomOrder: ZoomLevel[] = ["hour", "day", "week", "month", "quarter", "year"];
+                  const idx = zoomOrder.findIndex((z) => z === prevZoom);
+                  if (idx > 0) {
+                    const newZoom = zoomOrder[idx - 1] as typeof prevZoom;
+                    // After zoom, recenter view
+                    setTimeout(() => {
+                      // Calculate new range based on new zoom
+                      // Use jumpToNow logic but center on currentCenter
+                      let s = new Date(currentCenter);
+                      let e = new Date(currentCenter);
+                      switch (newZoom) {
+                        case "hour":
+                          s.setHours(s.getHours() - 6);
+                          e.setHours(e.getHours() + 6);
+                          break;
+                        case "day":
+                          s.setDate(s.getDate() - 3);
+                          e.setDate(e.getDate() + 3);
+                          break;
+                        case "week":
+                          s.setDate(s.getDate() - 10);
+                          e.setDate(e.getDate() + 10);
+                          break;
+                        case "month":
+                          s.setDate(s.getDate() - 14);
+                          e.setDate(e.getDate() + 13);
+                          break;
+                        case "quarter": {
+                          const quarterStartMonth = Math.floor(s.getMonth() / 3) * 3;
+                          s.setMonth(quarterStartMonth, 1);
+                          s.setHours(0, 0, 0, 0);
+                          const quarterEnd = new Date(e.getFullYear(), quarterStartMonth + 3, 0);
+                          quarterEnd.setHours(23, 59, 59, 999);
+                          e.setTime(quarterEnd.getTime());
+                          break;
+                        }
+                        case "year":
+                          s.setMonth(0, 1);
+                          s.setHours(0, 0, 0, 0);
+                          e.setMonth(11, 31);
+                          e.setHours(23, 59, 59, 999);
+                          break;
+                      }
+                      s.setHours(0, 0, 0, 0);
+                      e.setHours(23, 59, 59, 999);
+                      setStartDate(s);
+                      setEndDate(e);
+                    }, 0);
+                    return newZoom;
+                  }
+                  return prevZoom;
+                });
+              } else {
+                // Zoom out (go to next coarser zoom level)
+                setZoom((prevZoom) => {
+                  const zoomOrder: ZoomLevel[] = ["hour", "day", "week", "month", "quarter", "year"];
+                  const idx = zoomOrder.findIndex((z) => z === prevZoom);
+                  if (idx < zoomOrder.length - 1) {
+                    const newZoom = zoomOrder[idx + 1] as typeof prevZoom;
+                    setTimeout(() => {
+                      let s = new Date(currentCenter);
+                      let e = new Date(currentCenter);
+                      switch (newZoom) {
+                        case "hour":
+                          s.setHours(s.getHours() - 6);
+                          e.setHours(e.getHours() + 6);
+                          break;
+                        case "day":
+                          s.setDate(s.getDate() - 3);
+                          e.setDate(e.getDate() + 3);
+                          break;
+                        case "week":
+                          s.setDate(s.getDate() - 10);
+                          e.setDate(e.getDate() + 10);
+                          break;
+                        case "month":
+                          s.setDate(s.getDate() - 14);
+                          e.setDate(e.getDate() + 13);
+                          break;
+                        case "quarter": {
+                          const quarterStartMonth = Math.floor(s.getMonth() / 3) * 3;
+                          s.setMonth(quarterStartMonth, 1);
+                          s.setHours(0, 0, 0, 0);
+                          const quarterEnd = new Date(e.getFullYear(), quarterStartMonth + 3, 0);
+                          quarterEnd.setHours(23, 59, 59, 999);
+                          e.setTime(quarterEnd.getTime());
+                          break;
+                        }
+                        case "year":
+                          s.setMonth(0, 1);
+                          s.setHours(0, 0, 0, 0);
+                          e.setMonth(11, 31);
+                          e.setHours(23, 59, 59, 999);
+                          break;
+                      }
+                      s.setHours(0, 0, 0, 0);
+                      e.setHours(23, 59, 59, 999);
+                      setStartDate(s);
+                      setEndDate(e);
+                    }, 0);
+                    return newZoom;
+                  }
+                  return prevZoom;
+                });
+              }
+            }
+            return;
+          }
+          // ...existing code for vertical group scroll...
           if (filteredGroups.length <= groupsPerPage) return; // nothing to virtual-scroll
-          // accumulate delta so small wheel ticks move eventually
           scrollAccumRef.current += e.deltaY;
           const threshold = 30; // pixels per group scroll
           while (Math.abs(scrollAccumRef.current) >= threshold) {
