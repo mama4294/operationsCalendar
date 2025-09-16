@@ -29,17 +29,6 @@ function App() {
           boxSizing: "border-box",
         }}
       >
-        <h1
-          style={{
-            margin: 0,
-            color: "#323130",
-            fontSize: "1.3rem",
-            lineHeight: 1.2,
-            paddingLeft: "12px",
-          }}
-        >
-          Operations Timeline
-        </h1>
         <TimelineGrid />
       </div>
     </FluentProvider>
