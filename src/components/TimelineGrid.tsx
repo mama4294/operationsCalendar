@@ -249,19 +249,21 @@ export default function TimelineGrid() {
 
   // Helper function to create timeline items from operations
   const createTimelineItem = (operation: cr2b6_operations) => {
+    const operationBatchId =
+      (operation as any)._cr2b6_batch_value || operation.cr2b6_batch;
     const batch = batches.find(
-      (b: cr2b6_batcheses) => b.cr2b6_batchesid === operation.cr2b6_batch
+      (b: cr2b6_batcheses) => b.cr2b6_batchesid === operationBatchId
     );
     const bgColor = batch ? getBatchColor(batch) : "#d3d3d3"; // darker gray for no batch
     const textColor = batch ? "#fff" : "#000"; // black text for no batch
 
     return {
       id: getOperationId(operation),
-      group: operation.cr2b6_system,
+      group: (operation as any)._cr2b6_system_value || operation.cr2b6_system,
       title: operation.cr2b6_description,
       description: operation.cr2b6_description,
       type: operation.cr2b6_type,
-      batchId: operation.cr2b6_batch ?? null,
+      batchId: operationBatchId,
       start_time: moment(operation.cr2b6_starttime).valueOf(),
       end_time: moment(operation.cr2b6_endtime).valueOf(),
       itemProps: {
@@ -993,19 +995,32 @@ export default function TimelineGrid() {
       if (operation) {
         let batchId: string | null = null;
 
-        if ("cr2b6_batch" in operation) {
-          // It's already a cr2b6_operations object
-          batchId = operation.cr2b6_batch;
+        if ("cr2b6_operationid" in operation || "cr2b6_id" in operation) {
+          // It's a cr2b6_operations object - use the actual Dataverse field
+          batchId =
+            (operation as any)._cr2b6_batch_value || operation.cr2b6_batch;
+          console.log("Operation object batch lookup:", {
+            operationId: contextMenu.operationId,
+            _cr2b6_batch_value: (operation as any)._cr2b6_batch_value,
+            cr2b6_batch: operation.cr2b6_batch,
+            finalBatchId: batchId,
+          });
         } else {
           // It's a timeline item
           batchId = operation.batchId || null;
+          console.log("Timeline item batch lookup:", {
+            operationId: contextMenu.operationId,
+            batchId: operation.batchId,
+            finalBatchId: batchId,
+          });
         }
 
         if (batchId) {
           // Find all operations with the same batchId
-          const operationsInBatch = operations.filter(
-            (op) => op.cr2b6_batch === batchId
-          );
+          const operationsInBatch = operations.filter((op) => {
+            const opBatchId = (op as any)._cr2b6_batch_value || op.cr2b6_batch;
+            return opBatchId === batchId;
+          });
           const itemsInBatch = items.filter((item) => item.batchId === batchId);
 
           // Combine the IDs from both sources
@@ -1060,11 +1075,11 @@ export default function TimelineGrid() {
     const equipmentBelow = new Set(equipmentOrder.slice(startIdx)); // include current row
 
     // Collect operations (source of truth operations state) that match batch and are in rows below
-    const matchingOps = operations.filter(
-      (op) =>
-        op.cr2b6_batch === opBatchId &&
-        equipmentBelow.has(String(op.cr2b6_system))
-    );
+    const matchingOps = operations.filter((op) => {
+      const opBatch = (op as any)._cr2b6_batch_value || op.cr2b6_batch;
+      const opSystem = (op as any)._cr2b6_system_value || op.cr2b6_system;
+      return opBatch === opBatchId && equipmentBelow.has(String(opSystem));
+    });
     // Also account for any items not yet synced in operations state
     const matchingItems = items.filter(
       (it) => it.batchId === opBatchId && equipmentBelow.has(String(it.group))
