@@ -464,7 +464,30 @@ export default function TimelineGrid() {
     const s = searchTerm.toLowerCase();
     const batchMatch =
       it.batchId && String(it.batchId).toLowerCase().includes(s);
-    const typeMatch = it.type && String(it.type).toLowerCase().includes(s);
+    
+    // Handle operation type search - map numeric values to readable names
+    let typeMatch = false;
+    if (it.type) {
+      const typeStr = String(it.type).toLowerCase();
+      // Check direct string match first
+      typeMatch = typeStr.includes(s);
+      
+      // Also check human-readable type names
+      if (!typeMatch) {
+        const typeMap: Record<number, string> = {
+          566210000: "production",
+          566210001: "maintenance", 
+          566210002: "engineering",
+          566210003: "miscellaneous",
+        };
+        const numericType = Number(it.type);
+        const readableName = typeMap[numericType];
+        if (readableName) {
+          typeMatch = readableName.toLowerCase().includes(s);
+        }
+      }
+    }
+    
     const titleMatch = it.title && String(it.title).toLowerCase().includes(s);
     const descMatch =
       it.description && String(it.description).toLowerCase().includes(s);
@@ -480,8 +503,18 @@ export default function TimelineGrid() {
         String(eq.cr2b6_tag || "")
           .toLowerCase()
           .includes(s));
+          
+    // Also search in batch number if available
+    let batchNumberMatch = false;
+    if (it.batchId) {
+      const batch = batches.find(b => b.cr2b6_batchesid === it.batchId);
+      if (batch && batch.cr2b6_batchnumber) {
+        batchNumberMatch = String(batch.cr2b6_batchnumber).toLowerCase().includes(s);
+      }
+    }
+          
     return Boolean(
-      batchMatch || typeMatch || equipmentMatch || titleMatch || descMatch
+      batchMatch || typeMatch || equipmentMatch || titleMatch || descMatch || batchNumberMatch
     );
   });
   console.log("Items after search filter:", displayedItems);

@@ -13,16 +13,12 @@ import {
   MenuList,
   MenuItem,
   Toaster,
-  useToastController,
   useId,
-  Toast,
-  ToastTitle,
 } from "@fluentui/react-components";
 import {
   CalendarLtr24Regular,
   Add24Regular,
   Grid24Regular,
-  MoreHorizontal24Regular,
   ZoomIn24Regular,
   ZoomOut24Regular,
   Search24Regular,
@@ -83,8 +79,6 @@ export default function TimelineControls({
   onAddEquipment,
   onAddOperation,
   onManageBatches,
-  onExportDb,
-  onImportDb,
   onUndo,
   onRedo,
   canUndo,
@@ -92,7 +86,6 @@ export default function TimelineControls({
 }: Props) {
   const styles = useStyles();
   const toasterId = useId("controls-toaster");
-  const { dispatchToast } = useToastController(toasterId);
 
   const zoomOptions = [
     { key: "hour", text: "Hour View" },
@@ -136,7 +129,7 @@ export default function TimelineControls({
       {/* Search */}
       <Input
         className={styles.search}
-        placeholder=""
+        placeholder="Search..."
         aria-label="Search"
         value={searchTerm}
         contentBefore={<Search24Regular style={{ width: 16, height: 16 }} />}
