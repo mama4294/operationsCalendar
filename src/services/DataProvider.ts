@@ -104,8 +104,27 @@ export async function remove(
   dataSourceName: string,
   id: string
 ): Promise<IOperationResult<void>> {
+  console.log(
+    `[DataProvider.remove] Called with dataSourceName: ${dataSourceName}, id: ${id}`
+  );
   const client = getDataClient();
-  return client.deleteRecordAsync(dataSourceName, id);
+  try {
+    console.log(
+      `[DataProvider.remove] Calling client.deleteRecordAsync for id: ${id}`
+    );
+    await client.deleteRecordAsync(dataSourceName, id);
+    console.log(
+      `[DataProvider.remove] Successfully deleted record with id: ${id}`
+    );
+    // Delete operations typically don't return data, just success/failure
+    return { success: true, data: undefined as any };
+  } catch (error) {
+    console.error(
+      `[DataProvider.remove] Error deleting record with id: ${id}`,
+      error
+    );
+    return { success: false, error };
+  }
 }
 
 export interface IDataProvider {
@@ -339,15 +358,21 @@ class DataverseDataProvider implements IDataProvider {
   }
 
   async deleteOperation(id: string): Promise<void> {
+    console.log(`[DataProvider.deleteOperation] Called with id: ${id}`);
     const result = await remove(DATASOURCES.operations, id);
+    console.log(`[DataProvider.deleteOperation] Remove result:`, result);
     if (!result.success) {
       const msg = formatErrorMessage(
         "Failed to delete operation",
         result.error
       );
+      console.error(`[DataProvider.deleteOperation] Failed:`, msg);
       showErrorToast(msg);
       throw new Error(msg);
     }
+    console.log(
+      `[DataProvider.deleteOperation] Successfully deleted operation with id: ${id}`
+    );
   }
 
   async saveBatch(batch: Partial<cr2b6_batcheses>): Promise<cr2b6_batcheses> {

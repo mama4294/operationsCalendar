@@ -89,6 +89,8 @@ export default function TimelineGrid() {
   const [editMode, setEditMode] = useState<boolean>(false);
   // Search term for filtering
   const [searchTerm, setSearchTerm] = useState<string>("");
+  // Flag to prevent data refresh during delete operations
+  const isDeletingRef = useRef<boolean>(false);
 
   // Multi-select state
   const [selectedItems, setSelectedItems] = useState<Set<string | number>>(
@@ -104,8 +106,16 @@ export default function TimelineGrid() {
   const dragSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper to normalize operation ID
-  const getOperationId = (op: cr2b6_operations): string =>
-    String(op.cr2b6_operationid ?? op.cr2b6_id);
+  const getOperationId = (op: cr2b6_operations): string => {
+    const id = op.cr2b6_operationid || (op as any).cr2b6_id;
+    if (!id) {
+      console.error("Operation has no valid ID:", op);
+      console.error("cr2b6_operationid:", op.cr2b6_operationid);
+      console.error("cr2b6_id:", (op as any).cr2b6_id);
+      return "MISSING_ID";
+    }
+    return String(id);
+  };
 
   // Helpers for history
   const snapshotOps = (ops: cr2b6_operations[] = operations) =>
@@ -277,8 +287,23 @@ export default function TimelineGrid() {
   };
 
   useEffect(() => {
-    if (!powerReady) return;
+    console.log("=== DATA LOADING useEffect TRIGGERED ===");
+    console.log("powerReady:", powerReady);
+    console.log("isDeletingRef.current:", isDeletingRef.current);
+    console.log("startDate:", startDate);
+    console.log("endDate:", endDate);
 
+    if (!powerReady || isDeletingRef.current) {
+      console.log(
+        "Skipping data load - powerReady:",
+        powerReady,
+        "isDeletingRef:",
+        isDeletingRef.current
+      );
+      return;
+    }
+
+    console.log("Proceeding with data load...");
     let mounted = true;
     (async () => {
       const [eq, ops, batches] = await Promise.all([
@@ -706,14 +731,38 @@ export default function TimelineGrid() {
       const ids = Array.from(selectedItemsRef.current);
       if (ids.length === 0) return;
 
+      console.log("Delete key pressed with selected items:", ids);
+      console.log(
+        "Current operations state:",
+        operations.map((op) => ({
+          id: getOperationId(op),
+          description: op.cr2b6_description,
+        }))
+      );
+
       // Find operations to delete
       const opsToDelete = ids
-        .map((id) => operations.find((o) => getOperationId(o) === String(id)))
+        .map((id) => {
+          const op = operations.find((o) => getOperationId(o) === String(id));
+          console.log(
+            `Mapping ID ${id} to operation:`,
+            op ? getOperationId(op) : "NOT_FOUND"
+          );
+          return op;
+        })
         .filter((op) => op !== undefined) as cr2b6_operations[];
 
+      console.log(
+        `Found ${opsToDelete.length} operations to delete:`,
+        opsToDelete.map((op) => getOperationId(op))
+      );
+
       if (opsToDelete.length > 0) {
+        console.log("Setting operationsToDelete and opening dialog");
         setOperationsToDelete(opsToDelete);
         setIsDeleteConfirmationOpen(true);
+      } else {
+        console.log("No valid operations found for deletion");
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -853,9 +902,19 @@ export default function TimelineGrid() {
   };
 
   const handleDeleteOperation = () => {
+    console.log(
+      "handleDeleteOperation called with selectedOperation:",
+      selectedOperation
+    );
     if (selectedOperation) {
+      console.log(
+        "Setting operationToDelete:",
+        getOperationId(selectedOperation)
+      );
       setOperationToDelete(selectedOperation);
       setIsDeleteConfirmationOpen(true);
+    } else {
+      console.log("No selectedOperation found");
     }
   };
 
@@ -867,17 +926,144 @@ export default function TimelineGrid() {
         ? [operationToDelete]
         : [];
 
+    console.log("confirmDeleteOperation called with:", {
+      operationsToDelete: operationsToDelete.length,
+      operationToDelete: operationToDelete
+        ? getOperationId(operationToDelete)
+        : null,
+      operationsToProcess: operationsToProcess.length,
+    });
+
     if (operationsToProcess.length > 0) {
       try {
+        // Prevent data refresh during delete operation
+        isDeletingRef.current = true;
         pushHistory();
 
-        for (const op of operationsToProcess) {
-          await dataProvider.deleteOperation(getOperationId(op));
-          setOperations((prev) =>
-            prev.filter((p) => getOperationId(p) !== getOperationId(op))
-          );
-          setItems((prev) => prev.filter((i) => i.id !== getOperationId(op)));
+        // Collect all operation IDs to delete and validate them
+        console.log("Operations to process:", operationsToProcess);
+        operationsToProcess.forEach((op, index) => {
+          console.log(`Operation ${index}:`, {
+            cr2b6_operationid: op.cr2b6_operationid,
+            cr2b6_id: (op as any).cr2b6_id,
+            description: op.cr2b6_description,
+            fullObject: op,
+          });
+        });
+
+        const idsToDelete = operationsToProcess
+          .map((op) => getOperationId(op))
+          .filter((id) => id !== "MISSING_ID"); // Filter out invalid IDs
+
+        if (idsToDelete.length === 0) {
+          console.error("No valid operation IDs found to delete!");
+          return;
         }
+
+        if (idsToDelete.length !== operationsToProcess.length) {
+          console.warn(
+            `Only ${idsToDelete.length} out of ${operationsToProcess.length} operations have valid IDs`
+          );
+        }
+
+        console.log(
+          `Attempting to delete ${idsToDelete.length} operations:`,
+          idsToDelete
+        );
+        console.log(
+          "Operations before delete:",
+          operations.map((op) => getOperationId(op))
+        );
+        console.log(
+          "Items before delete:",
+          items.map((i) => String(i.id))
+        );
+
+        // Delete all operations from the backend
+        console.log(
+          "About to call dataProvider.deleteOperation for each operation..."
+        );
+        const deletePromises = operationsToProcess
+          .filter((op) => getOperationId(op) !== "MISSING_ID") // Only process operations with valid IDs
+          .map(async (op) => {
+            const opId = getOperationId(op);
+            console.log(`Starting delete for operation ${opId}`);
+            try {
+              const result = await dataProvider.deleteOperation(opId);
+              console.log(`Delete result for operation ${opId}:`, result);
+              return { opId, success: true, result };
+            } catch (error) {
+              console.error(`Delete failed for operation ${opId}:`, error);
+              return { opId, success: false, error };
+            }
+          });
+
+        const deleteResults = await Promise.all(deletePromises);
+        console.log("All delete operations completed. Results:", deleteResults);
+
+        // Check if any deletes failed
+        const failedDeletes = deleteResults.filter((r) => !r.success);
+        if (failedDeletes.length > 0) {
+          console.error(
+            `${failedDeletes.length} deletes failed:`,
+            failedDeletes
+          );
+        } else {
+          console.log("All backend deletes succeeded");
+        }
+
+        // Update state in batch - remove all deleted operations at once
+        console.log("Updating operations state...");
+        console.log(
+          "Operations before state update:",
+          operations.map((op) => ({
+            id: getOperationId(op),
+            desc: op.cr2b6_description,
+          }))
+        );
+
+        setOperations((prev) => {
+          const newOps = prev.filter(
+            (p) => !idsToDelete.includes(getOperationId(p))
+          );
+          console.log(
+            `Operations state update: ${prev.length} -> ${newOps.length}`
+          );
+          console.log(
+            "Remaining operations:",
+            newOps.map((op) => ({
+              id: getOperationId(op),
+              desc: op.cr2b6_description,
+            }))
+          );
+          return newOps;
+        });
+
+        console.log("Updating items state...");
+        console.log(
+          "Items before state update:",
+          items.map((i) => ({
+            id: String(i.id),
+            title: i.title,
+          }))
+        );
+
+        setItems((prev) => {
+          const newItems = prev.filter(
+            (i) => !idsToDelete.includes(String(i.id))
+          );
+          console.log(
+            `Items state update: ${prev.length} -> ${newItems.length}`
+          );
+          console.log(
+            "Remaining items:",
+            newItems.map((i) => ({
+              id: String(i.id),
+              title: i.title,
+            }))
+          );
+          return newItems;
+        });
 
         // Clear selections and close dialogs
         setSelectedItems(new Set());
@@ -885,10 +1071,65 @@ export default function TimelineGrid() {
         setSelectedOperation(undefined);
         setOperationToDelete(undefined);
         setOperationsToDelete([]);
+
+        console.log(`Successfully deleted ${idsToDelete.length} operations`);
+
+        // Add a delayed check to see if something is overriding our state
+        setTimeout(() => {
+          console.log("=== POST-DELETE STATE CHECK (after 1 second) ===");
+          console.log("isDeletingRef.current:", isDeletingRef.current);
+          console.log("Current operations count:", operations.length);
+          console.log("Current items count:", items.length);
+          console.log(
+            "Operations still present:",
+            operations.map((op) => ({
+              id: getOperationId(op),
+              desc: op.cr2b6_description,
+            }))
+          );
+          console.log(
+            "Items still present:",
+            items.map((i) => ({
+              id: String(i.id),
+              title: i.title,
+            }))
+          );
+
+          // Check if any of the "deleted" operations are still there
+          const stillPresentOps = operations.filter((op) =>
+            idsToDelete.includes(getOperationId(op))
+          );
+          const stillPresentItems = items.filter((i) =>
+            idsToDelete.includes(String(i.id))
+          );
+
+          if (stillPresentOps.length > 0) {
+            console.error(
+              "❌ OPERATIONS STILL PRESENT AFTER DELETE:",
+              stillPresentOps.map((op) => getOperationId(op))
+            );
+          } else {
+            console.log("✅ No deleted operations found in operations state");
+          }
+
+          if (stillPresentItems.length > 0) {
+            console.error(
+              "❌ ITEMS STILL PRESENT AFTER DELETE:",
+              stillPresentItems.map((i) => String(i.id))
+            );
+          } else {
+            console.log("✅ No deleted operations found in items state");
+          }
+        }, 1000);
       } catch (error) {
         console.error("Failed to delete operation:", error);
         // TODO: Show error message to user
+      } finally {
+        // Re-enable data refresh after delete operation completes
+        isDeletingRef.current = false;
       }
+    } else {
+      console.log("No operations to delete");
     }
   };
 
@@ -950,34 +1191,44 @@ export default function TimelineGrid() {
   const handleContextMenuDelete = () => {
     if (!editMode) return;
     if (contextMenu.operationId) {
-      // Find the operation
-      const operation =
-        operations.find(
-          (op) => getOperationId(op) === contextMenu.operationId
-        ) || items.find((item) => item.id === contextMenu.operationId);
+      // Find the operation from the operations state first
+      const operation = operations.find(
+        (op) => getOperationId(op) === contextMenu.operationId
+      );
 
       if (operation) {
-        if ("cr2b6_system" in operation) {
-          // It's already a cr2b6_operations object
-          setOperationToDelete(operation);
-        } else {
-          // Convert from timeline item
+        // Use the actual operation from state
+        setOperationToDelete(operation);
+        setIsDeleteConfirmationOpen(true);
+      } else {
+        // Fallback: try to find from items and convert
+        const item = items.find(
+          (item) => String(item.id) === contextMenu.operationId
+        );
+        if (item) {
+          console.warn(
+            "Creating operation from timeline item - this may cause issues:",
+            item
+          );
           const operationData: cr2b6_operations = {
-            cr2b6_operationid: operation.id,
-            cr2b6_system: operation.group,
-            cr2b6_batch: operation.batchId || null,
-            cr2b6_starttime: new Date(operation.start_time),
-            cr2b6_endtime: new Date(operation.end_time),
-            cr2b6_type: operation.type || "Production",
-            cr2b6_description: operation.title,
+            cr2b6_operationid: String(item.id) as any,
+            cr2b6_system: item.group,
+            cr2b6_batch: item.batchId || null,
+            cr2b6_starttime: new Date(item.start_time),
+            cr2b6_endtime: new Date(item.end_time),
+            cr2b6_type: item.type || "Production",
+            cr2b6_description: item.title,
             createdon: new Date(),
             modifiedon: new Date(),
           } as cr2b6_operations;
           setOperationToDelete(operationData);
+          setIsDeleteConfirmationOpen(true);
+        } else {
+          console.error(
+            "Could not find operation to delete with ID:",
+            contextMenu.operationId
+          );
         }
-
-        // Open confirmation dialog
-        setIsDeleteConfirmationOpen(true);
       }
 
       setContextMenu((prev) => ({ ...prev, visible: false }));
