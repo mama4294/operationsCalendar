@@ -1,4 +1,9 @@
-import { FluentProvider, webLightTheme, Toaster, useId } from "@fluentui/react-components";
+import {
+  FluentProvider,
+  webLightTheme,
+  Toaster,
+  useId,
+} from "@fluentui/react-components";
 import TimelineGrid from "./components/TimelineGrid";
 import { useGlobalToast, setGlobalToasterId } from "./utils/toastUtils";
 import "./App.css";

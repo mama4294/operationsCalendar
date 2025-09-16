@@ -316,7 +316,13 @@ export default function TimelineGrid() {
       console.log("Operations:", ops);
       console.log("Operations count:", ops.length);
       console.log("First operation:", ops[0]);
-      console.log("Operations system values:", ops.map(o => ({ id: o.cr2b6_operationid ?? o.cr2b6_id, system: o.cr2b6_system })));
+      console.log(
+        "Operations system values:",
+        ops.map((o) => ({
+          id: o.cr2b6_operationid ?? o.cr2b6_id,
+          system: o.cr2b6_system,
+        }))
+      );
       setItems(
         (ops as unknown as cr2b6_operations[]).map((o) => ({
           id: String(o.cr2b6_operationid ?? o.cr2b6_id),
@@ -347,11 +353,14 @@ export default function TimelineGrid() {
           },
         }))
       );
-      console.log("Items set:", (ops as unknown as cr2b6_operations[]).map((o) => ({
-        id: String(o.cr2b6_operationid ?? o.cr2b6_id),
-        group: o.cr2b6_system,
-        title: o.cr2b6_description,
-      })));
+      console.log(
+        "Items set:",
+        (ops as unknown as cr2b6_operations[]).map((o) => ({
+          id: String(o.cr2b6_operationid ?? o.cr2b6_id),
+          group: o.cr2b6_system,
+          title: o.cr2b6_description,
+        }))
+      );
     })();
     return () => {
       mounted = false;
@@ -377,7 +386,20 @@ export default function TimelineGrid() {
       // Allow an extra row if there's > 70% of a row free
       const raw = usable / GROUP_LINE_HEIGHT;
       let per = Math.max(3, Math.floor(raw + (raw % 1 > 0.7 ? 1 : 0)));
-      console.log("groupsPerPage calculation - el.clientHeight:", el.clientHeight, "total:", total, "headerH:", headerH, "usable:", usable, "raw:", raw, "per:", per);
+      console.log(
+        "groupsPerPage calculation - el.clientHeight:",
+        el.clientHeight,
+        "total:",
+        total,
+        "headerH:",
+        headerH,
+        "usable:",
+        usable,
+        "raw:",
+        raw,
+        "per:",
+        per
+      );
       setGroupsPerPage(per);
     };
     const resizeObserver = new ResizeObserver(() => compute());
@@ -1137,8 +1159,20 @@ export default function TimelineGrid() {
 
   // Debug logging
   console.log("Timeline render - groups:", groups, "items:", items);
-  console.log("Timeline render - displayedGroups:", displayedGroups, "displayedItems:", displayedItems);
-  console.log("Timeline render - groupsPerPage:", groupsPerPage, "groupOffset:", groupOffset, "filteredGroups.length:", filteredGroups.length);
+  console.log(
+    "Timeline render - displayedGroups:",
+    displayedGroups,
+    "displayedItems:",
+    displayedItems
+  );
+  console.log(
+    "Timeline render - groupsPerPage:",
+    groupsPerPage,
+    "groupOffset:",
+    groupOffset,
+    "filteredGroups.length:",
+    filteredGroups.length
+  );
 
   return (
     <div

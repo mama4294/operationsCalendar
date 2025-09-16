@@ -1,14 +1,28 @@
 import React, { useEffect } from "react";
-import { useToastController, Toast, ToastTitle } from "@fluentui/react-components";
+import {
+  useToastController,
+  Toast,
+  ToastTitle,
+} from "@fluentui/react-components";
 
 let globalToasterId: string | null = null;
-let globalDispatchToast: ((content: React.ReactNode, options?: { intent?: "success" | "error" | "warning" | "info" }) => void) | null = null;
+let globalDispatchToast:
+  | ((
+      content: React.ReactNode,
+      options?: { intent?: "success" | "error" | "warning" | "info" }
+    ) => void)
+  | null = null;
 
 export const setGlobalToasterId = (id: string) => {
   globalToasterId = id;
 };
 
-export const setGlobalDispatchToast = (dispatch: (content: React.ReactNode, options?: { intent?: "success" | "error" | "warning" | "info" }) => void) => {
+export const setGlobalDispatchToast = (
+  dispatch: (
+    content: React.ReactNode,
+    options?: { intent?: "success" | "error" | "warning" | "info" }
+  ) => void
+) => {
   globalDispatchToast = dispatch;
 };
 
