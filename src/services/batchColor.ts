@@ -22,22 +22,26 @@ export function getBatchColor(batch: any): string {
   const m = key.match(/^(\d{1,4})-([A-Za-z0-9]+)-(\d{1,6})$/);
   if (m) {
     const yearPart = m[1];
-    const codePart = m[2];
-    const seqPart = parseInt(m[3], 10) || 0;
+    const codePart = m[2]; // PPP
+    const seqPart = parseInt(m[3], 10) || 0; // NN
 
-    // Base hue depends on the CODE part so different codes are separated
-    const base = hashStringToInt(codePart) % 360;
+    // Assign a base hue for each PPP (codePart)
+    const baseHue = hashStringToInt(codePart) % 360;
 
-    // Choose a multiplier that is coprime with 360 to spread sequential numbers
-    // widely across the hue wheel. 47 is prime and works well here.
-    const MULT = 47;
-    const hue = (base + seqPart * MULT) % 360;
+  // For NN, use shade variation: keep hue fixed, vary lightness
+  // Use a repeating palette of 7 shades for NN
+  const shadeCount = 7;
+  const shadeIdx = seqPart % shadeCount;
+  // Expanded lightness range: 25% (darkest) to 65% (lightest)
+  const minLight = 25;
+  const maxLight = 65;
+  const lightStep = (maxLight - minLight) / (shadeCount - 1);
+  const light = minLight + shadeIdx * lightStep;
 
-    // Slightly vary saturation/lightness by year or code hash so palettes differ
-    const sat = 62 + (hashStringToInt(codePart) % 18); // ~62-79
-    const light = 38 + (parseInt(yearPart.slice(-1), 10) % 8); // ~38-45
+    // Saturation: keep similar for PPP, but vary slightly by year
+    const satBase = 65 + (parseInt(yearPart.slice(-1), 10) % 10); // 65-74
 
-    return `hsl(${Math.round(hue)} ${Math.round(sat)}% ${Math.round(light)}%)`;
+    return `hsl(${Math.round(baseHue)} ${Math.round(satBase)}% ${Math.round(light)}%)`;
   }
 
   // Fallback: hash whole key as before but keep wider saturation/lightness

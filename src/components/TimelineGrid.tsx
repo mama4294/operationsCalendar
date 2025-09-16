@@ -263,8 +263,16 @@ export default function TimelineGrid() {
     const batch = batches.find(
       (b: cr2b6_batcheses) => b.cr2b6_batchesid === operationBatchId
     );
-    const bgColor = batch ? getBatchColor(batch) : "#d3d3d3"; // darker gray for no batch
-    const textColor = batch ? "#fff" : "#000"; // black text for no batch
+    let isMaintenance = operation.cr2b6_type && String(operation.cr2b6_type).toLowerCase().includes("maintenance");
+    let bgColor = "#d3d3d3";
+    let textColor = "#000";
+    if (isMaintenance) {
+      bgColor = "#ff9800";
+      textColor = "#fff";
+    } else if (batch) {
+      bgColor = getBatchColor(batch);
+      textColor = "#fff";
+    }
 
     return {
       id: getOperationId(operation),
