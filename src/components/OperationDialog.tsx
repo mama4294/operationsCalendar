@@ -208,48 +208,62 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
               }}
             >
               <Field label="Equipment" required>
-                <Dropdown
-                  placeholder="Select equipment"
-                  value={
-                    equipment.find(
+                {editMode ? (
+                  <Dropdown
+                    placeholder="Select equipment"
+                    value={
+                      equipment.find(
+                        (sys) => sys.cr2b6_systemid === formData.cr2b6_system
+                      )?.cr2b6_description || ""
+                    }
+                    onOptionSelect={(_, data) =>
+                      handleChange("cr2b6_system", data.optionValue)
+                    }
+                  >
+                    {equipment.map((sys) => (
+                      <Option
+                        key={sys.cr2b6_systemid}
+                        value={sys.cr2b6_systemid}
+                        text={`${sys.cr2b6_description} (${
+                          sys.cr2b6_tag ?? "-"
+                        })`}
+                      >
+                        {sys.cr2b6_description} ({sys.cr2b6_tag ?? "-"})
+                      </Option>
+                    ))}
+                  </Dropdown>
+                ) : (
+                  <Text>
+                    {equipment.find(
                       (sys) => sys.cr2b6_systemid === formData.cr2b6_system
-                    )?.cr2b6_description || ""
-                  }
-                  onOptionSelect={(_, data) =>
-                    handleChange("cr2b6_system", data.optionValue)
-                  }
-                  disabled={!editMode}
-                >
-                  {equipment.map((sys) => (
-                    <Option
-                      key={sys.cr2b6_systemid}
-                      value={sys.cr2b6_systemid}
-                      text={`${sys.cr2b6_description} (${
-                        sys.cr2b6_tag ?? "-"
-                      })`}
-                    >
-                      {sys.cr2b6_description} ({sys.cr2b6_tag ?? "-"})
-                    </Option>
-                  ))}
-                </Dropdown>
+                    )?.cr2b6_description || "-"}
+                  </Text>
+                )}
               </Field>
 
               <Field label="Start Time" required>
-                <Input
-                  type="datetime-local"
-                  value={
-                    formData.cr2b6_starttime
-                      ? formatDateTimeLocal(formData.cr2b6_starttime)
-                      : ""
-                  }
-                  onChange={(e) =>
-                    handleChange(
-                      "cr2b6_starttime",
-                      parseDateTime(e.target.value)
-                    )
-                  }
-                  disabled={!editMode}
-                />
+                {editMode ? (
+                  <Input
+                    type="datetime-local"
+                    value={
+                      formData.cr2b6_starttime
+                        ? formatDateTimeLocal(formData.cr2b6_starttime)
+                        : ""
+                    }
+                    onChange={(e) =>
+                      handleChange(
+                        "cr2b6_starttime",
+                        parseDateTime(e.target.value)
+                      )
+                    }
+                  />
+                ) : (
+                  <Text>
+                    {formData.cr2b6_starttime
+                      ? formatDateTime(formData.cr2b6_starttime)
+                      : "-"}
+                  </Text>
+                )}
               </Field>
 
               <Field label="Batch">
@@ -303,52 +317,69 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
               </Field>
 
               <Field label="End Time" required>
-                <Input
-                  type="datetime-local"
-                  value={
-                    formData.cr2b6_endtime
-                      ? formatDateTimeLocal(formData.cr2b6_endtime)
-                      : ""
-                  }
-                  onChange={(e) =>
-                    handleChange("cr2b6_endtime", parseDateTime(e.target.value))
-                  }
-                  disabled={!editMode}
-                />
+                {editMode ? (
+                  <Input
+                    type="datetime-local"
+                    value={
+                      formData.cr2b6_endtime
+                        ? formatDateTimeLocal(formData.cr2b6_endtime)
+                        : ""
+                    }
+                    onChange={(e) =>
+                      handleChange("cr2b6_endtime", parseDateTime(e.target.value))
+                    }
+                  />
+                ) : (
+                  <Text>
+                    {formData.cr2b6_endtime
+                      ? formatDateTime(formData.cr2b6_endtime)
+                      : "-"}
+                  </Text>
+                )}
               </Field>
 
               <Field label="Type" required>
-                <Dropdown
-                  placeholder="Select operation type"
-                  value={formData.cr2b6_type || ""}
-                  onOptionSelect={(_, data) =>
-                    handleChange("cr2b6_type", data.optionValue)
-                  }
-                  disabled={!editMode}
-                >
-                  <Option value="Production" text="Production">
-                    Production
-                  </Option>
-                  <Option value="Maintenance" text="Maintenance">
-                    Maintenance
-                  </Option>
-                  <Option value="Engineering" text="Engineering">
-                    Engineering
-                  </Option>
-                  <Option value="Miscellaneous" text="Miscellaneous">
-                    Miscellaneous
-                  </Option>
-                </Dropdown>
+                {editMode ? (
+                  <Dropdown
+                    placeholder="Select operation type"
+                    value={formData.cr2b6_type || ""}
+                    onOptionSelect={(_, data) =>
+                      handleChange("cr2b6_type", data.optionValue)
+                    }
+                  >
+                    <Option value="Production" text="Production">
+                      Production
+                    </Option>
+                    <Option value="Maintenance" text="Maintenance">
+                      Maintenance
+                    </Option>
+                    <Option value="Engineering" text="Engineering">
+                      Engineering
+                    </Option>
+                    <Option value="Miscellaneous" text="Miscellaneous">
+                      Miscellaneous
+                    </Option>
+                  </Dropdown>
+                ) : (
+                  <Text>
+                    {formData.cr2b6_type || "-"}
+                  </Text>
+                )}
               </Field>
 
               <Field label="Description" required>
-                <Input
-                  value={formData.cr2b6_description || ""}
-                  onChange={(e) =>
-                    handleChange("cr2b6_description", e.target.value)
-                  }
-                  disabled={!editMode}
-                />
+                {editMode ? (
+                  <Input
+                    value={formData.cr2b6_description || ""}
+                    onChange={(e) =>
+                      handleChange("cr2b6_description", e.target.value)
+                    }
+                  />
+                ) : (
+                  <Text>
+                    {formData.cr2b6_description || "-"}
+                  </Text>
+                )}
               </Field>
             </div>
 
