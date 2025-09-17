@@ -258,17 +258,37 @@ export default function TimelineGrid() {
   const timelineOuterRef = useRef<HTMLDivElement | null>(null);
 
   // Helper function to create timeline items from operations
-  const createTimelineItem = (operation: cr2b6_operations) => {
+  const createTimelineItem = (operation: cr2b6_operations, batchesArray?: cr2b6_batcheses[]) => {
     const operationBatchId =
       (operation as any)._cr2b6_batch_value || operation.cr2b6_batch;
-    const batch = batches.find(
+    const batchesToUse = batchesArray || batches;
+    const batch = batchesToUse.find(
       (b: cr2b6_batcheses) => b.cr2b6_batchesid === operationBatchId
     );
-    let isMaintenance = operation.cr2b6_type && String(operation.cr2b6_type).toLowerCase().includes("maintenance");
+    // Check if operation is maintenance or engineering - handle both string and numeric types
+    let isMaintenance = false;
+    let isEngineering = false;
+    if (operation.cr2b6_type) {
+      const typeStr = String(operation.cr2b6_type).toLowerCase();
+      // Check direct string matches first
+      isMaintenance = typeStr.includes("maintenance");
+      isEngineering = typeStr.includes("engineering");
+      
+      // Also check numeric type codes
+      if (!isMaintenance && !isEngineering) {
+        const numericType = Number(operation.cr2b6_type);
+        isMaintenance = numericType === 566210001; // Maintenance type code
+        isEngineering = numericType === 566210002; // Engineering type code
+      }
+    }
+    
     let bgColor = "#d3d3d3";
     let textColor = "#000";
     if (isMaintenance) {
-      bgColor = "#ff9800";
+      bgColor = "#ff9800"; // Orange for maintenance
+      textColor = "#fff";
+    } else if (isEngineering) {
+      bgColor = "#e8d4a2"; // Tan for engineering
       textColor = "#fff";
     } else if (batch) {
       bgColor = getBatchColor(batch);
@@ -361,35 +381,7 @@ export default function TimelineGrid() {
         }))
       );
       setItems(
-        (ops as unknown as cr2b6_operations[]).map((o) => ({
-          id: String(o.cr2b6_operationid ?? o.cr2b6_id),
-          group: (o as any)._cr2b6_system_value || o.cr2b6_system,
-          title: o.cr2b6_description,
-          description: o.cr2b6_description, // Add description for tooltip
-          type: o.cr2b6_type,
-          batchId: (o as any)._cr2b6_batch_value || o.cr2b6_batch, // expects batchesid
-          start_time: moment(o.cr2b6_starttime).valueOf(),
-          end_time: moment(o.cr2b6_endtime).valueOf(),
-          itemProps: {
-            style: (() => {
-              const batchValue = (o as any)._cr2b6_batch_value || o.cr2b6_batch;
-              const key = batchValue ? String(batchValue) : undefined;
-              const bgColor = key ? batchColorById[key] || "#999" : "#4a4b54ff";
-              console.log(
-                "Operation",
-                String(o.cr2b6_operationid ?? o.cr2b6_id),
-                "batch",
-                batchValue,
-                "color:",
-                bgColor
-              );
-              return {
-                background: bgColor,
-                color: "#fff",
-              };
-            })(),
-          },
-        }))
+        (ops as unknown as cr2b6_operations[]).map((o) => createTimelineItem(o, batches))
       );
       console.log(
         "Items set:",
