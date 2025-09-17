@@ -78,7 +78,7 @@ export const DuplicateOperationsDialog: React.FC<
                     batch.cr2b6_batchnumber || batch.cr2b6_batchesid || "";
                   return (
                     <Option key={bid} value={bid} text={`Batch ${bid}`}>
-                      Batch {bid}
+                      {bid}
                     </Option>
                   );
                 })}
