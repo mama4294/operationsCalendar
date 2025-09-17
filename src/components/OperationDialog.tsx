@@ -11,6 +11,7 @@ import {
   Dropdown,
   Option,
   Text,
+  Link,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
@@ -174,6 +175,13 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
     });
   };
 
+  const generateBatchUrl = (batchId: string): string => {
+    // PowerApps URL format: https://org8ef10ef2.crm.dynamics.com/main.aspx?appid=d5334b92-1ab7-ef11-b8e8-7c1e52580584&pagetype=entityrecord&etn=cr2b6_batches&id=3f9c4cba-1890-f011-b4cc-6045bdd76e6a
+    const baseUrl = "https://org8ef10ef2.crm.dynamics.com/main.aspx";
+    const appId = "d5334b92-1ab7-ef11-b8e8-7c1e52580584";
+    return `${baseUrl}?appid=${appId}&pagetype=entityrecord&etn=cr2b6_batches&id=${batchId}`;
+  };
+
   const parseDateTime = (value: string): Date => {
     return new Date(value);
   };
@@ -245,35 +253,53 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
               </Field>
 
               <Field label="Batch">
-                <Dropdown
-                  placeholder="Select batch (optional)"
-                  value={
-                    batches.find(
-                      (batch) => batch.cr2b6_batchesid === formData.cr2b6_batch
-                    )?.cr2b6_batchnumber ?? ""
-                  }
-                  onOptionSelect={(_, data) =>
-                    handleChange(
-                      "cr2b6_batch",
-                      data.optionValue === ""
-                        ? undefined
-                        : (data.optionValue as string)
-                    )
-                  }
-                  disabled={!editMode}
-                >
-                  <Option value="" text="No Batch">
-                    No Batch
-                  </Option>
-                  {batches.map((batch) => {
-                    const bid = batch.cr2b6_batchesid ?? "";
-                    return (
-                      <Option key={bid} value={bid} text={String(bid)}>
-                        {String(batch.cr2b6_batchnumber ?? bid)}
-                      </Option>
-                    );
-                  })}
-                </Dropdown>
+                {editMode ? (
+                  <Dropdown
+                    placeholder="Select batch (optional)"
+                    value={
+                      batches.find(
+                        (batch) => batch.cr2b6_batchesid === formData.cr2b6_batch
+                      )?.cr2b6_batchnumber ?? ""
+                    }
+                    onOptionSelect={(_, data) =>
+                      handleChange(
+                        "cr2b6_batch",
+                        data.optionValue === ""
+                          ? undefined
+                          : (data.optionValue as string)
+                      )
+                    }
+                    disabled={!editMode}
+                  >
+                    <Option value="" text="No Batch">
+                      No Batch
+                    </Option>
+                    {batches.map((batch) => {
+                      const bid = batch.cr2b6_batchesid ?? "";
+                      return (
+                        <Option key={bid} value={bid} text={String(bid)}>
+                          {String(batch.cr2b6_batchnumber ?? bid)}
+                        </Option>
+                      );
+                    })}
+                  </Dropdown>
+                ) : (
+                  <div>
+                    {formData.cr2b6_batch ? (
+                      <Link
+                        href={generateBatchUrl(formData.cr2b6_batch)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {batches.find(
+                          (batch) => batch.cr2b6_batchesid === formData.cr2b6_batch
+                        )?.cr2b6_batchnumber ?? formData.cr2b6_batch}
+                      </Link>
+                    ) : (
+                      <Text>No Batch</Text>
+                    )}
+                  </div>
+                )}
               </Field>
 
               <Field label="End Time" required>
