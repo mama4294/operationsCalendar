@@ -139,6 +139,7 @@ export interface IDataProvider {
   deleteOperation(id: string): Promise<void>;
   saveBatch(batch: Partial<cr2b6_batcheses>): Promise<cr2b6_batcheses>;
   deleteBatch(): Promise<void>;
+  getProductOptions(): Promise<Array<{ value: string; label: string }>>;
 }
 
 class DataverseDataProvider implements IDataProvider {
@@ -424,6 +425,54 @@ class DataverseDataProvider implements IDataProvider {
     const msg = "Batch deletion is disabled.";
     showErrorToast(msg);
     throw new Error(msg);
+  }
+
+  // Get available product options for the batch products lookup field
+  async getProductOptions(): Promise<Array<{ value: string; label: string }>> {
+    try {
+      // For now, we'll query existing batches to get distinct product names
+      // This could be replaced with a proper products entity query when available
+      const batches = await this.getBatches();
+      const productNames = new Set<string>();
+      
+      batches.forEach(batch => {
+        if (batch.cr2b6_productsname) {
+          productNames.add(batch.cr2b6_productsname);
+        }
+      });
+
+      // Convert to dropdown options format
+      const options = Array.from(productNames)
+        .sort()
+        .map(name => ({
+          value: name,
+          label: name
+        }));
+
+      // If no existing products found, provide some default options
+      if (options.length === 0) {
+        return [
+          { value: "Protein Powder", label: "Protein Powder" },
+          { value: "Protein Concentrate", label: "Protein Concentrate" },
+          { value: "Protein Isolate", label: "Protein Isolate" },
+          { value: "Functional Ingredient", label: "Functional Ingredient" },
+          { value: "Other", label: "Other" }
+        ];
+      }
+
+      return options;
+    } catch (error) {
+      const msg = formatErrorMessage("Failed to load product options", error);
+      showErrorToast(msg);
+      // Return default options as fallback
+      return [
+        { value: "Protein Powder", label: "Protein Powder" },
+        { value: "Protein Concentrate", label: "Protein Concentrate" },
+        { value: "Protein Isolate", label: "Protein Isolate" },
+        { value: "Functional Ingredient", label: "Functional Ingredient" },
+        { value: "Other", label: "Other" }
+      ];
+    }
   }
 }
 

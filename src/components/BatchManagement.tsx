@@ -209,6 +209,7 @@ export const BatchManagement: React.FC<BatchManagementProps> = ({
         open={isBatchDialogOpen}
         onOpenChange={setIsBatchDialogOpen}
         onSave={handleSaveBatch}
+        existingBatches={batches}
       />
 
       {/* Deletion disabled — confirmation dialog removed */}
