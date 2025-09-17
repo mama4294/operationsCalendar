@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 // Constants for virtual scrolling sizing
 const GROUP_LINE_HEIGHT = 40; // must match timeline lineHeight
 const ITEM_HEIGHT_RATIO = 0.9; // tuned for visual vertical centering
+
 import Timeline, {
   TimelineMarkers,
   TodayMarker,

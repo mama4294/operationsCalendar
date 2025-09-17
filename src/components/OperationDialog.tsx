@@ -47,6 +47,21 @@ const useStyles = makeStyles({
   },
 });
 
+// Helper function to format duration
+const formatDuration = (startTime: Date | string, endTime: Date | string): string => {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const durationMs = end.getTime() - start.getTime();
+  const durationHours = durationMs / (1000 * 60 * 60);
+  const durationDays = durationHours / 24;
+
+  if (durationDays >= 1) {
+    return `${durationDays.toFixed(1)} days`;
+  } else {
+    return `${durationHours.toFixed(1)} hours`;
+  }
+};
+
 interface OperationDialogProps {
   operation?: cr2b6_operations;
   open: boolean;
@@ -381,6 +396,15 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
                   </Text>
                 )}
               </Field>
+
+              {/* Duration field - show when we have valid start/end times */}
+              {formData.cr2b6_starttime && formData.cr2b6_endtime && (
+                <Field label="Duration">
+                  <Text>
+                    {formatDuration(formData.cr2b6_starttime, formData.cr2b6_endtime)}
+                  </Text>
+                </Field>
+              )}
             </div>
 
             {/* Audit Information Section - Show only for existing operations in read-only mode */}
