@@ -10,6 +10,9 @@ import {
   Field,
   Dropdown,
   Option,
+  Text,
+  makeStyles,
+  tokens,
 } from "@fluentui/react-components";
 import type { cr2b6_batcheses } from "../generated/models/cr2b6_batchesesModel";
 import type { cr2b6_systems } from "../generated/models/cr2b6_systemsModel";
@@ -20,6 +23,28 @@ import type {
   DialogOpenChangeData,
   DialogOpenChangeEvent,
 } from "@fluentui/react-components";
+
+const useStyles = makeStyles({
+  auditSection: {
+    marginTop: tokens.spacingVerticalL,
+    padding: tokens.spacingVerticalM,
+    backgroundColor: tokens.colorNeutralBackground2,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  auditGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: tokens.spacingVerticalS,
+  },
+  auditLabel: {
+    fontWeight: tokens.fontWeightSemibold,
+    color: tokens.colorNeutralForeground2,
+  },
+  auditValue: {
+    color: tokens.colorNeutralForeground1,
+  },
+});
 
 interface OperationDialogProps {
   operation?: cr2b6_operations;
@@ -45,6 +70,7 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
   batches,
   editMode = true,
 }) => {
+  const styles = useStyles();
   const [formData, setFormData] = useState<Partial<cr2b6_operations>>(
     operation ?? {
       cr2b6_system: "",
@@ -136,9 +162,22 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
+  const formatDateTime = (date: Date | string | undefined): string => {
+    if (!date) return "Not available";
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    return dateObj.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short", 
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const parseDateTime = (value: string): Date => {
     return new Date(value);
   };
+
 
   return (
     <>
@@ -286,6 +325,31 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
                 />
               </Field>
             </div>
+
+            {/* Audit Information Section - Show only for existing operations in read-only mode */}
+            {operation && !editMode && (
+              <div className={styles.auditSection}>
+
+                <div className={styles.auditGrid}>
+                  <div>
+                    <Text className={styles.auditLabel}>Created On: </Text>
+                    <Text className={styles.auditValue}>{formatDateTime(operation.createdon)}</Text>
+                  </div>
+                  <div>
+                    <Text className={styles.auditLabel}>Created By: </Text>
+                    <Text className={styles.auditValue}>{operation.createdbyname || ""}</Text>
+                  </div>
+                  <div>
+                    <Text className={styles.auditLabel}>Modified On: </Text>
+                    <Text className={styles.auditValue}>{formatDateTime(operation.modifiedon)}</Text>
+                  </div>
+                  <div>
+                    <Text className={styles.auditLabel}>Modified By: </Text>
+                    <Text className={styles.auditValue}>{operation.modifiedbyname || ""}</Text>
+                  </div>
+                </div>
+              </div>
+            )}
           </DialogBody>
           {/* <Divider /> */}
           <DialogActions

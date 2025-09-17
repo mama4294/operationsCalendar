@@ -165,6 +165,23 @@ class DataverseDataProvider implements IDataProvider {
     console.log("getOperations result:", result);
     if (result.success) {
       console.log("getOperations raw data:", result.data);
+      console.log("First operation audit fields:", result.data[0] ? {
+        createdbyname: result.data[0].createdbyname,
+        modifiedbyname: result.data[0].modifiedbyname,
+        createdon: result.data[0].createdon,
+        modifiedon: result.data[0].modifiedon,
+        createdby: result.data[0].createdby,
+        modifiedby: result.data[0].modifiedby,
+        owneridname: result.data[0].owneridname,
+        allKeys: Object.keys(result.data[0])
+      } : "No operations found");
+      console.log("All fields containing 'created' or 'modified':", result.data[0] ? 
+        Object.keys(result.data[0]).filter(key => 
+          key.toLowerCase().includes('created') || 
+          key.toLowerCase().includes('modified') ||
+          key.toLowerCase().includes('owner') ||
+          key.toLowerCase().includes('name')
+        ) : "No operations found");
       return result.data;
     }
     const msg = formatErrorMessage("Failed to get operations", result.error);
