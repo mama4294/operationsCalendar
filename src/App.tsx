@@ -58,7 +58,10 @@ function App() {
             flexDirection: "column",
             gap: "8px",
             minHeight: "0",
+            minWidth: 0,
+            maxWidth: "100%",
             boxSizing: "border-box",
+            overflow: "hidden",
           }}
         >
           {renderCurrentPage()}

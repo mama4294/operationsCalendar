@@ -44,21 +44,28 @@ interface Props {
   onRedo?: () => void | Promise<void>;
   canUndo?: boolean;
   canRedo?: boolean;
+  embedded?: boolean; // New prop for header embedding
 }
 
 const useStyles = makeStyles({
   toolbar: {
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderRadius: tokens.borderRadiusMedium,
-    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
     display: "flex",
     gap: tokens.spacingHorizontalS,
     alignItems: "center",
-    flexWrap: "wrap",
-    // allow content to compress on small screens
-    maxWidth: "100%",
+    flexWrap: "nowrap",
+    width: "100%",
+    minWidth: 0,
+    overflow: "hidden",
   },
-  spacer: { flex: 1 },
+  toolbarStandalone: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
+  },
+  spacer: { 
+    flex: 1, 
+    minWidth: 0 // Allow compression
+  },
   search: {
     minWidth: "140px",
     marginRight: tokens.spacingHorizontalS,
@@ -83,6 +90,7 @@ export default function TimelineControls({
   onRedo,
   canUndo,
   canRedo,
+  embedded = false,
 }: Props) {
   const styles = useStyles();
   const toasterId = useId("controls-toaster");
@@ -125,7 +133,10 @@ export default function TimelineControls({
   };
 
   return (
-    <Toolbar className={styles.toolbar} size="small">
+    <Toolbar 
+      className={`${styles.toolbar} ${!embedded ? styles.toolbarStandalone : ''}`} 
+      size="small"
+    >
       {/* Search */}
       <Input
         className={styles.search}

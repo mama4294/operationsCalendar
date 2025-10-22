@@ -11,6 +11,10 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     height: '100%',
     gap: tokens.spacingVerticalM,
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   header: {
     display: 'flex',
@@ -20,6 +24,9 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
     boxShadow: tokens.shadow4,
+    justifyContent: 'space-between',
+    flexWrap: 'nowrap',
+    minHeight: '56px',
   },
   content: {
     flex: 1,
@@ -29,7 +36,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
     boxShadow: tokens.shadow4,
-    padding: tokens.spacingVerticalXXL,
+    padding: tokens.spacingVerticalM,
   },
   placeholder: {
     textAlign: 'center',
@@ -44,16 +51,19 @@ export default function FloorPlan() {
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <Map24Regular />
-        <Text size={500} weight="semibold">
-          Floor Plan
-        </Text>
+        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalM }}>
+          <Map24Regular />
+          <Text size={500} weight="semibold">
+            Floor Plan
+          </Text>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className={styles.content}>
         <div className={styles.placeholder}>
           <Map24Regular style={{ fontSize: '64px', marginBottom: '16px' }} />
+                    <br />
           <Text size={400}>Floor Plan view coming soon...</Text>
           <br />
           <Text size={300} style={{ color: tokens.colorNeutralForeground3 }}>

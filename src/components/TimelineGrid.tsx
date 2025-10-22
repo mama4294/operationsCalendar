@@ -1,4 +1,10 @@
 import { useEffect, useState, useRef } from "react";
+import {
+  Text,
+  makeStyles,
+  tokens,
+} from "@fluentui/react-components";
+import { CalendarLtr24Regular } from "@fluentui/react-icons";
 
 // Constants for virtual scrolling sizing
 const GROUP_LINE_HEIGHT = 40; // must match timeline lineHeight
@@ -43,7 +49,47 @@ const sortBatches = (list: cr2b6_batcheses[]) => {
   });
 };
 
+const useStyles = makeStyles({
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+    gap: tokens.spacingVerticalM,
+    overflow: 'hidden',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+    padding: tokens.spacingVerticalM,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    boxShadow: tokens.shadow4,
+    justifyContent: 'space-between',
+    flexWrap: 'nowrap',
+    minHeight: '56px',
+  },
+  content: {
+    flex: 1,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    boxShadow: tokens.shadow4,
+    padding: tokens.spacingVerticalM,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column",
+    position: "relative",
+    width: "100%",
+    minWidth: 0,
+    maxWidth: "100%",
+  },
+});
+
 export default function TimelineGrid() {
+  const styles = useStyles();
   const {
     zoom,
     setZoom,
@@ -1558,28 +1604,19 @@ export default function TimelineGrid() {
   );
 
   return (
-    <div
-      style={{
-        backgroundColor: "#f5f5f5",
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "0", // Important for nested flex containers
-        overflow: "hidden", // Prevent double scrollbars
-        gap: "8px", // Space between controls and timeline
-        padding: "8px 8px 10px 8px", // Slightly tighter padding
-      }}
-    >
-      {/* Command Bar Container */}
-      <div
-        style={{
-          backgroundColor: "white",
-          borderRadius: "6px",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06)",
-          padding: "8px 10px",
-        }}
-      >
+    <div className={styles.container}>
+      {/* Header */}
+      <div className={styles.header}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacingHorizontalM }}>
+          <CalendarLtr24Regular />
+          <Text size={500} weight="semibold">
+            Timeline
+          </Text>
+        </div>
+        
+        {/* Timeline Controls */}
         <TimelineControls
+          embedded={true}
           zoom={zoom}
           setZoom={setZoom}
           editMode={editMode}
@@ -1609,12 +1646,14 @@ export default function TimelineGrid() {
         />
       </div>
 
+      {/* Main Content */}
+      <div className={styles.content}>
+
       {/* Timeline Container (reverted wrapper, rely on component scroll) */}
       <div
         style={{
           backgroundColor: "white",
           borderRadius: "6px",
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06)",
           padding: "6px 8px 4px 8px",
           flex: 1,
           minHeight: 0,
@@ -2201,6 +2240,7 @@ export default function TimelineGrid() {
         onOpenChange={setIsBatchManagementOpen}
         onSaveBatch={handleSaveBatch}
       />
+      </div>
     </div>
   );
 }
