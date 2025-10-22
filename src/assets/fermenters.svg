@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="600" height="300">
+  <title>Fermenters 3A-3F</title>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#333" text-anchor="middle">
+    <!-- Top row: 3A, 3B, 3C -->
+    <circle id="3A" cx="100" cy="100" r="40" fill="#e5e5e5" stroke="#999" stroke-width="2"/>
+    <text x="100" y="105">3A</text>
+
+    <circle id="3B" cx="300" cy="100" r="40" fill="#e5e5e5" stroke="#999" stroke-width="2"/>
+    <text x="300" y="105">3B</text>
+
+    <circle id="3C" cx="500" cy="100" r="40" fill="#e5e5e5" stroke="#999" stroke-width="2"/>
+    <text x="500" y="105">3C</text>
+
+    <!-- Bottom row: 3D, 3E, 3F -->
+    <circle id="3D" cx="100" cy="220" r="40" fill="#e5e5e5" stroke="#999" stroke-width="2"/>
+    <text x="100" y="225">3D</text>
+
+    <circle id="3E" cx="300" cy="220" r="40" fill="#e5e5e5" stroke="#999" stroke-width="2"/>
+    <text x="300" y="225">3E</text>
+
+    <circle id="3F" cx="500" cy="220" r="40" fill="#e5e5e5" stroke="#999" stroke-width="2"/>
+    <text x="500" y="225">3F</text>
+  </g>
+</svg>
