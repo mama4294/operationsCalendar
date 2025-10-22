@@ -208,6 +208,11 @@ class DataverseDataProvider implements IDataProvider {
       cr2b6_tag: equipment.cr2b6_tag ?? "",
       cr2b6_description: equipment.cr2b6_description ?? ""
     };
+
+    // Include order field if provided (for reordering functionality)
+    if (equipment.cr2b6_order !== undefined) {
+      payload.cr2b6_order = equipment.cr2b6_order;
+    }
     let result;
     if (equipment.cr2b6_systemid) {
       result = await update<Partial<cr2b6_systems>, cr2b6_systems>(

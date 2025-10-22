@@ -2022,7 +2022,6 @@ export default function TimelineGrid() {
                           cr2b6_systemid: (eq as any).cr2b6_systemid,
                           cr2b6_tag: (eq as any).cr2b6_tag,
                           cr2b6_description: (eq as any).cr2b6_description,
-                          // @ts-ignore order field
                           cr2b6_order: (eq as any).cr2b6_order,
                         });
                       } catch (err) {
