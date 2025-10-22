@@ -1769,6 +1769,14 @@ export default function TimelineGrid() {
             // Removed drag preview logic
             return; // let timeline internal drag proceed
           }
+          
+          // Check if the pointer is over a group (sidebar) area to avoid interfering with equipment drag
+          const sidebarEl = target.closest('[role="rowheader"]') || target.closest('.rct-sidebar-row');
+          if (sidebarEl) {
+            // Don't interfere with group drag operations
+            return;
+          }
+          
           // Vertical group window drag
           dragRef.current = {
             startY: e.clientY,
@@ -1970,6 +1978,13 @@ export default function TimelineGrid() {
                 if (!editMode) return;
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData("text/plain", String(group.id));
+                // Reset any timeline drag state that might interfere
+                dragRef.current.dragging = false;
+              }}
+              onDragEnd={() => {
+                if (!editMode) return;
+                // Ensure timeline drag state is completely reset after equipment drag
+                dragRef.current.dragging = false;
               }}
               onDragOver={(e) => {
                 if (!editMode) return;
@@ -2031,6 +2046,8 @@ export default function TimelineGrid() {
                   })();
                   return arr;
                 });
+                // Ensure timeline drag state is reset after equipment reorder
+                dragRef.current.dragging = false;
               }}
               style={{
                 cursor: editMode ? "grab" : "default",
