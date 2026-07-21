@@ -952,45 +952,73 @@ export default function TimelineGrid() {
   };
 
   const handleSaveOperation = async (operation: Partial<cr2b6_operations>) => {
+    // snapshot before change
+    pushHistory();
+
+    const isUpdate = Boolean(operation.cr2b6_operationid || operation.cr2b6_id);
+    const existingId = isUpdate
+      ? getOperationId(operation as cr2b6_operations)
+      : undefined;
+    const previousOperation = isUpdate
+      ? operations.find((op) => getOperationId(op) === existingId)
+      : undefined;
+    // New operations don't have a real ID yet - use a temporary one so the
+    // item can be shown immediately, then reconcile once the save resolves.
+    const tempId = existingId ?? `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const optimisticOperation = {
+      ...(previousOperation ?? {}),
+      ...operation,
+      cr2b6_operationid: tempId,
+    } as cr2b6_operations;
+
+    // Reflect the change immediately - don't make the user wait on the
+    // network round trip to see the operation they just saved.
+    if (isUpdate) {
+      setOperations((prev) =>
+        prev.map((op) => (getOperationId(op) === existingId ? optimisticOperation : op))
+      );
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === existingId ? createTimelineItem(optimisticOperation) : item
+        )
+      );
+    } else {
+      setOperations((prev) => [...prev, optimisticOperation]);
+      setItems((prev) => [...prev, createTimelineItem(optimisticOperation)]);
+    }
+
+    setIsOperationDialogOpen(false);
+    setSelectedOperation(undefined);
+
     try {
-      // snapshot before change
-      pushHistory();
       const saved = (await dataProvider.saveOperation(
         operation as any
       )) as unknown as cr2b6_operations;
 
-      // Update operations state
-      if (operation.cr2b6_operationid || operation.cr2b6_id) {
+      // Swap the optimistic record for the server's version (real ID, any
+      // server-computed fields).
+      setOperations((prev) =>
+        prev.map((op) => (getOperationId(op) === tempId ? saved : op))
+      );
+      setItems((prev) =>
+        prev.map((item) => (item.id === tempId ? createTimelineItem(saved) : item))
+      );
+    } catch (error) {
+      console.error("Failed to save operation:", error);
+      // Roll back the optimistic change; dataProvider already surfaced an error toast.
+      if (isUpdate && previousOperation) {
         setOperations((prev) =>
-          prev.map((op) =>
-            getOperationId(op) === getOperationId(operation as cr2b6_operations)
-              ? saved
-              : op
-          )
+          prev.map((op) => (getOperationId(op) === tempId ? previousOperation : op))
         );
-
-        // Update timeline items
-        const timelineItem = createTimelineItem(saved);
         setItems((prev) =>
           prev.map((item) =>
-            item.id === getOperationId(operation as cr2b6_operations)
-              ? timelineItem
-              : item
+            item.id === tempId ? createTimelineItem(previousOperation) : item
           )
         );
       } else {
-        setOperations((prev) => [...prev, saved]);
-
-        // Add new timeline item
-        const timelineItem = createTimelineItem(saved);
-        setItems((prev) => [...prev, timelineItem]);
+        setOperations((prev) => prev.filter((op) => getOperationId(op) !== tempId));
+        setItems((prev) => prev.filter((item) => item.id !== tempId));
       }
-
-      setIsOperationDialogOpen(false);
-      setSelectedOperation(undefined);
-    } catch (error) {
-      console.error("Failed to save operation:", error);
-      // TODO: Show error message to user
     }
   };
 
