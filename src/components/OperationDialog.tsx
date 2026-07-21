@@ -9,6 +9,7 @@ import {
   Input,
   Field,
   Dropdown,
+  Combobox,
   Option,
   Text,
   Link,
@@ -148,6 +149,27 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
   const isExistingOperation = Boolean(
     operation && (operation.cr2b6_operationid || operation.cr2b6_id)
   );
+
+  const batchLabel = (batch: cr2b6_batcheses) =>
+    String(batch.cr2b6_batchnumber ?? batch.cr2b6_batchesid ?? "");
+
+  // Text typed into the batch search box. Kept in sync with the selected
+  // batch's label so it displays correctly when the dialog opens or the
+  // selection changes elsewhere.
+  const [batchQuery, setBatchQuery] = useState("");
+  useEffect(() => {
+    const selected = batches.find(
+      (batch) => batch.cr2b6_batchesid === formData.cr2b6_batch
+    );
+    setBatchQuery(selected ? batchLabel(selected) : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.cr2b6_batch, batches]);
+
+  const matchingBatches = batchQuery.trim()
+    ? batches.filter((batch) =>
+        batchLabel(batch).toLowerCase().includes(batchQuery.trim().toLowerCase())
+      )
+    : batches;
 
   const handleChange = useCallback(
     (field: keyof cr2b6_operations, value: any) => {
@@ -290,35 +312,37 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
 
               <Field label="Batch">
                 {editMode ? (
-                  <Dropdown
-                    placeholder="Select batch (optional)"
-                    value={
-                      batches.find(
-                        (batch) => batch.cr2b6_batchesid === formData.cr2b6_batch
-                      )?.cr2b6_batchnumber ?? ""
-                    }
-                    onOptionSelect={(_, data) =>
+                  <Combobox
+                    placeholder="Search batch (optional)"
+                    value={batchQuery}
+                    onChange={(e) => setBatchQuery(e.target.value)}
+                    onOptionSelect={(_, data) => {
                       handleChange(
                         "cr2b6_batch",
                         data.optionValue === ""
                           ? undefined
                           : (data.optionValue as string)
-                      )
-                    }
-                    disabled={!editMode}
+                      );
+                      setBatchQuery(data.optionText ?? "");
+                    }}
+                    freeform
                   >
                     <Option value="" text="No Batch">
                       No Batch
                     </Option>
-                    {batches.map((batch) => {
-                      const bid = batch.cr2b6_batchesid ?? "";
-                      return (
-                        <Option key={bid} value={bid} text={String(bid)}>
-                          {String(batch.cr2b6_batchnumber ?? bid)}
-                        </Option>
-                      );
-                    })}
-                  </Dropdown>
+                    {matchingBatches.length === 0 ? (
+                      <Text style={{ padding: "0 12px" }}>No matching batches</Text>
+                    ) : (
+                      matchingBatches.map((batch) => {
+                        const bid = batch.cr2b6_batchesid ?? "";
+                        return (
+                          <Option key={bid} value={bid} text={batchLabel(batch)}>
+                            {batchLabel(batch)}
+                          </Option>
+                        );
+                      })
+                    )}
+                  </Combobox>
                 ) : (
                   <div>
                     {formData.cr2b6_batch ? (
