@@ -38,6 +38,10 @@
         "shiftassignments": {
           "entitySetName": "cr2b6_shiftassignments",
           "logicalName": "cr2b6_shiftassignment"
+        },
+        "peoples": {
+          "entitySetName": "cr2b6_peoples",
+          "logicalName": "cr2b6_people"
         }
       }
     }

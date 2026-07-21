@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import {
   Text,
+  Tooltip,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
@@ -9,6 +10,13 @@ import { CalendarLtr24Regular } from "@fluentui/react-icons";
 // Constants for virtual scrolling sizing
 const GROUP_LINE_HEIGHT = 40; // must match timeline lineHeight
 const ITEM_HEIGHT_RATIO = 0.9; // tuned for visual vertical centering
+
+// Shift/Time Off are rendered as real rows pinned above the equipment rows -
+// always visible, excluded from the equipment virtual-scroll windowing.
+const SHIFT_ROW_ID = "shift-row";
+const TIMEOFF_ROW_ID = "timeoff-row";
+const PINNED_ROW_IDS = [SHIFT_ROW_ID, TIMEOFF_ROW_ID];
+const isPinnedRow = (id: unknown) => PINNED_ROW_IDS.includes(String(id));
 
 import Timeline, {
   TimelineMarkers,
@@ -33,8 +41,37 @@ import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 import type { cr2b6_batcheses } from "../generated/models/cr2b6_batchesesModel";
 import type { cr2b6_systems } from "../generated/models/cr2b6_systemsModel";
 import type { cr2b6_operations } from "../generated/models/cr2b6_operationsModel";
-import { dataProvider } from "../services/DataProvider";
+import type { Cr2b6_shiftassignments } from "../generated/models/Cr2b6_shiftassignmentsModel";
+import type { Cr2b6_timeoffs } from "../generated/models/Cr2b6_timeoffsModel";
+import type { Cr2b6_peoples } from "../generated/models/Cr2b6_peoplesModel";
+import { dataProvider, SHIFT_CODES, TIME_OFF_TYPE_CODES } from "../services/DataProvider";
+import type { ShiftAssignmentInput, TimeOffInput } from "../services/DataProvider";
 import { usePowerReady } from "./PowerProvider";
+import { getShiftSegments, parseDateOnly } from "../services/shiftRotation";
+import { ShiftAssignmentDialog } from "./ShiftAssignmentDialog";
+import { TimeOffDialog } from "./TimeOffDialog";
+
+// Reverse-lookups from the raw numeric option-set code back to its label.
+const TIME_OFF_TYPE_LABELS: Record<number, string> = Object.fromEntries(
+  Object.entries(TIME_OFF_TYPE_CODES).map(([label, code]) => [code, label])
+);
+
+// Solid fills with white text, matching the rest of the timeline (operations,
+// batches, maintenance/engineering all use white-on-solid), rather than the
+// light pastel Fluent tint tokens - those pair a light background with dark
+// text, which reads inconsistently next to everything else on the page.
+const WHITE_TEXT = "#ffffff";
+const SHIFT_PAIR_COLORS: Record<"AB" | "CD", { background: string; foreground: string }> = {
+  AB: { background: "#5B5FC7", foreground: WHITE_TEXT }, // muted indigo
+  CD: { background: "#0F7B6C", foreground: WHITE_TEXT }, // muted teal-green
+};
+
+const TIME_OFF_COLORS: Record<string, { background: string; foreground: string }> = {
+  RTO: { background: "#8764B8", foreground: WHITE_TEXT }, // soft purple
+  PTO: { background: "#4F6BED", foreground: WHITE_TEXT }, // soft royal blue
+  Sick: { background: "#C19C00", foreground: WHITE_TEXT }, // muted gold (avoid red)
+};
+const DEFAULT_TIME_OFF_COLOR = { background: "#8a8886", foreground: WHITE_TEXT };
 // types are available in models if needed
 
 // Helper to alphabetically sort batches by batch number (case-insensitive),
@@ -99,6 +136,16 @@ export default function TimelineGrid() {
     setEndDate,
     jumpToNow,
   } = useViewport("month");
+  // User-controlled visibility for the pinned Shift/Time Off rows.
+  const [shiftRowEnabled, setShiftRowEnabled] = useState(false);
+  const [timeOffRowEnabled, setTimeOffRowEnabled] = useState(false);
+  // The Shift row's segments become unreadable once zoomed out further than
+  // "quarter" (i.e. at "year"), so hide it there regardless of the toggle.
+  // Time Off has no such zoom restriction.
+  const showShiftRow = shiftRowEnabled && zoom !== "year";
+  const showTimeOffRow = timeOffRowEnabled;
+  const activePinnedRowCount =
+    (showShiftRow ? 1 : 0) + (showTimeOffRow ? 1 : 0);
   const powerReady = usePowerReady();
   const [groups, setGroups] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
@@ -293,6 +340,114 @@ export default function TimelineGrid() {
   // Batch management state
   const [isBatchManagementOpen, setIsBatchManagementOpen] = useState(false);
 
+  // Shift schedule + time off state
+  const [shiftAssignments, setShiftAssignments] = useState<Cr2b6_shiftassignments[]>([]);
+  const [timeOffs, setTimeOffs] = useState<Cr2b6_timeoffs[]>([]);
+  const [people, setPeople] = useState<Cr2b6_peoples[]>([]);
+  const [isShiftAssignmentDialogOpen, setIsShiftAssignmentDialogOpen] = useState(false);
+  const [selectedShiftAssignment, setSelectedShiftAssignment] = useState<
+    Cr2b6_shiftassignments | undefined
+  >();
+  const [shiftAssignmentPrefillCrew, setShiftAssignmentPrefillCrew] = useState<
+    string | undefined
+  >();
+  const [isTimeOffDialogOpen, setIsTimeOffDialogOpen] = useState(false);
+  const [selectedTimeOff, setSelectedTimeOff] = useState<Cr2b6_timeoffs | undefined>();
+  const [timeOffPrefillRange, setTimeOffPrefillRange] = useState<
+    { start: Date; end: Date } | undefined
+  >();
+
+  const refreshShiftData = async () => {
+    const [assignments, offs, ppl] = await Promise.all([
+      dataProvider.getShiftAssignments(),
+      dataProvider.getTimeOff(),
+      dataProvider.getPeople(),
+    ]);
+    setShiftAssignments(assignments);
+    setTimeOffs(offs);
+    setPeople(ppl);
+  };
+
+  useEffect(() => {
+    if (!powerReady) return;
+    refreshShiftData().catch((e) =>
+      console.error("Failed to load shift schedule data", e)
+    );
+  }, [powerReady]);
+
+  const handleOpenShiftAssignmentDialog = (
+    assignment?: Cr2b6_shiftassignments,
+    prefillCrew?: string
+  ) => {
+    setSelectedShiftAssignment(assignment);
+    setShiftAssignmentPrefillCrew(prefillCrew);
+    setIsShiftAssignmentDialogOpen(true);
+  };
+
+  const handleSaveShiftAssignment = async (input: ShiftAssignmentInput) => {
+    try {
+      await dataProvider.saveShiftAssignment(input);
+      await refreshShiftData();
+    } catch (e) {
+      console.error("Failed to save shift assignment", e);
+    } finally {
+      setIsShiftAssignmentDialogOpen(false);
+      setSelectedShiftAssignment(undefined);
+    }
+  };
+
+  const handleDeleteShiftAssignment = async () => {
+    if (!selectedShiftAssignment?.cr2b6_shiftassignmentid) return;
+    try {
+      await dataProvider.deleteShiftAssignment(
+        selectedShiftAssignment.cr2b6_shiftassignmentid
+      );
+      await refreshShiftData();
+    } catch (e) {
+      console.error("Failed to delete shift assignment", e);
+    } finally {
+      setIsShiftAssignmentDialogOpen(false);
+      setSelectedShiftAssignment(undefined);
+    }
+  };
+
+  const handleAddTimeOff = (prefillRange?: { start: Date; end: Date }) => {
+    setSelectedTimeOff(undefined);
+    setTimeOffPrefillRange(prefillRange);
+    setIsTimeOffDialogOpen(true);
+  };
+
+  const handleEditTimeOff = (timeOff: Cr2b6_timeoffs) => {
+    setSelectedTimeOff(timeOff);
+    setTimeOffPrefillRange(undefined);
+    setIsTimeOffDialogOpen(true);
+  };
+
+  const handleSaveTimeOff = async (input: TimeOffInput) => {
+    try {
+      await dataProvider.saveTimeOff(input);
+      await refreshShiftData();
+    } catch (e) {
+      console.error("Failed to save time off", e);
+    } finally {
+      setIsTimeOffDialogOpen(false);
+      setSelectedTimeOff(undefined);
+    }
+  };
+
+  const handleDeleteTimeOff = async () => {
+    if (!selectedTimeOff?.cr2b6_timeoffid) return;
+    try {
+      await dataProvider.deleteTimeOff(selectedTimeOff.cr2b6_timeoffid);
+      await refreshShiftData();
+    } catch (e) {
+      console.error("Failed to delete time off", e);
+    } finally {
+      setIsTimeOffDialogOpen(false);
+      setSelectedTimeOff(undefined);
+    }
+  };
+
   // Virtual group windowing (Option 3)
   const [groupOffset, setGroupOffset] = useState(0); // starting index in groups array
   const [groupsPerPage, setGroupsPerPage] = useState(30); // dynamic later
@@ -460,9 +615,10 @@ export default function TimelineGrid() {
       const headerH = headerEl ? headerEl.getBoundingClientRect().height : 48;
       // Available vertical space for rows
       const usable = Math.max(0, total - headerH);
-      // Allow an extra row if there's > 70% of a row free
+      // Always floor (never round up) so the last row never renders
+      // partially cut off - a little empty space beats a chopped-off row.
       const raw = usable / GROUP_LINE_HEIGHT;
-      let per = Math.max(3, Math.floor(raw + (raw % 1 > 0.7 ? 1 : 0)));
+      let per = Math.max(3, Math.floor(raw));
       console.log(
         "groupsPerPage calculation - el.clientHeight:",
         el.clientHeight,
@@ -486,13 +642,16 @@ export default function TimelineGrid() {
     return () => resizeObserver.disconnect();
   }, []);
 
-  // Clamp offset when groups change
+  // Clamp offset when groups change. Rows equal to activePinnedRowCount are
+  // always reserved for the pinned Shift/Time Off rows, so equipment only
+  // gets the remainder to page through.
   useEffect(() => {
     setGroupOffset((prev) => {
-      const maxStart = Math.max(0, groups.length - groupsPerPage);
+      const equipmentPerPage = Math.max(1, groupsPerPage - activePinnedRowCount);
+      const maxStart = Math.max(0, groups.length - equipmentPerPage);
       return Math.min(prev, maxStart);
     });
-  }, [groups, groupsPerPage]);
+  }, [groups, groupsPerPage, activePinnedRowCount]);
 
   const visibleTimeStart = moment(startDate).valueOf();
   const visibleTimeEnd = moment(endDate).valueOf();
@@ -575,21 +734,134 @@ export default function TimelineGrid() {
         return hasOperationsInWindow;
       });
 
-  // Apply virtual window
-  const maxStart = Math.max(0, filteredGroups.length - groupsPerPage);
+  // Apply virtual window. activePinnedRowCount rows of groupsPerPage are
+  // permanently reserved for the pinned Shift/Time Off rows (added below),
+  // so only the remainder pages through the equipment list.
+  const equipmentGroupsPerPage = Math.max(1, groupsPerPage - activePinnedRowCount);
+  const maxStart = Math.max(0, filteredGroups.length - equipmentGroupsPerPage);
   const clampedOffset = Math.min(groupOffset, maxStart);
-  let displayedGroups = filteredGroups.slice(
+  let displayedEquipmentGroups = filteredGroups.slice(
     clampedOffset,
-    clampedOffset + groupsPerPage
+    clampedOffset + equipmentGroupsPerPage
   );
 
   // Further constrain displayed items to those in visible group window
-  const visibleGroupIds = new Set(displayedGroups.map((g) => String(g.id)));
+  const visibleGroupIds = new Set(displayedEquipmentGroups.map((g) => String(g.id)));
   displayedItems = displayedItems.filter((it) =>
     visibleGroupIds.has(String(it.group))
   );
   console.log("Items after visible group filter:", displayedItems);
   console.log("Visible group IDs:", Array.from(visibleGroupIds));
+
+  // Shift row: one item per contiguous on-duty crew-pair stretch in the
+  // visible date range.
+  const shiftGroup = { id: SHIFT_ROW_ID, title: "Shift", rightTitle: "" };
+  const shiftSegments = getShiftSegments(
+    new Date(visibleTimeStart),
+    new Date(visibleTimeEnd)
+  );
+  const peopleById = new Map(
+    people
+      .filter((p) => p.cr2b6_peopleid)
+      .map((p) => [p.cr2b6_peopleid as string, p.cr2b6_fullname])
+  );
+  const employeesForCrew = (crew: string, at: Date) =>
+    shiftAssignments
+      .filter((a) => {
+        if ((a.cr2b6_shift as unknown as number) !== SHIFT_CODES[crew]) return false;
+        const start = parseDateOnly(a.cr2b6_startdate);
+        const end = parseDateOnly(a.cr2b6_enddate);
+        if (start && at < start) return false;
+        if (end && at > end) return false;
+        return true;
+      })
+      .map(
+        (a) =>
+          peopleById.get((a as any)._cr2b6_employee_value ?? "") ||
+          a.cr2b6_employeename ||
+          "Unassigned"
+      );
+  const shiftItems = shiftSegments.map((seg, i) => {
+    const dayNames = employeesForCrew(seg.day, seg.start);
+    const nightNames = employeesForCrew(seg.night, seg.start);
+    return {
+      id: `${SHIFT_ROW_ID}-${i}`,
+      group: SHIFT_ROW_ID,
+      title: `${seg.day} / ${seg.night}`,
+      start_time: seg.start.getTime(),
+      end_time: seg.end.getTime(),
+      canMove: false,
+      canResize: false,
+      canChangeGroup: false,
+      shiftCrewPair: seg.day === "A" ? ("AB" as const) : ("CD" as const),
+      shiftDayCrew: seg.day,
+      shiftNightCrew: seg.night,
+      shiftDayNames: dayNames,
+      shiftNightNames: nightNames,
+    };
+  });
+
+  // Time Off row: one item per record overlapping the visible date range.
+  // stackItems (already enabled below) auto-stacks concurrent absences.
+  const timeOffGroup = { id: TIMEOFF_ROW_ID, title: "Time Off", rightTitle: "" };
+  const timeOffItems = timeOffs
+    .map((record) => {
+      const start = parseDateOnly(record.cr2b6_startdate);
+      if (!start) return null;
+      const end = parseDateOnly(record.cr2b6_enddate) ?? start;
+      const endExclusive = new Date(
+        end.getFullYear(),
+        end.getMonth(),
+        end.getDate() + 1
+      );
+      if (
+        !(
+          start.getTime() < visibleTimeEnd &&
+          endExclusive.getTime() > visibleTimeStart
+        )
+      ) {
+        return null;
+      }
+      const typeLabel =
+        TIME_OFF_TYPE_LABELS[record.cr2b6_type as unknown as number] ?? "";
+      const employeeName =
+        peopleById.get((record as any)._cr2b6_employee_value ?? "") ||
+        record.cr2b6_employeename ||
+        "Unknown";
+      return {
+        id: record.cr2b6_timeoffid,
+        group: TIMEOFF_ROW_ID,
+        title: employeeName,
+        start_time: start.getTime(),
+        end_time: endExclusive.getTime(),
+        canMove: false,
+        canResize: false,
+        canChangeGroup: false,
+        timeOffRecord: record,
+        timeOffTypeLabel: typeLabel,
+        timeOffEmployeeName: employeeName,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x);
+
+  // Whichever pinned row is currently last gets the divider border, so the
+  // separation from equipment rows is always right below the pinned rows.
+  const lastPinnedRowId = showTimeOffRow
+    ? TIMEOFF_ROW_ID
+    : showShiftRow
+    ? SHIFT_ROW_ID
+    : null;
+
+  const displayedGroups = [
+    ...(showShiftRow ? [shiftGroup] : []),
+    ...(showTimeOffRow ? [timeOffGroup] : []),
+    ...displayedEquipmentGroups,
+  ];
+  displayedItems = [
+    ...(displayedItems as any[]),
+    ...(showShiftRow ? shiftItems : []),
+    ...(showTimeOffRow ? timeOffItems : []),
+  ];
 
   // Inject placeholder if no items to display
   // if (displayedItems.length === 0) {
@@ -785,6 +1057,13 @@ export default function TimelineGrid() {
   };
 
   const handleItemSelect = (itemId: string | number, e?: any) => {
+    // Only real operations participate in multi-select/context-menu/delete;
+    // Shift and Time Off rows are edited through their own dialogs instead.
+    const isRealOperation = operations.some(
+      (op) => getOperationId(op) === String(itemId)
+    );
+    if (!isRealOperation) return;
+
     // Handle multi-select with CMD/Ctrl key
     if (e && (e.metaKey || e.ctrlKey)) {
       setSelectedItems((prev) => {
@@ -1585,7 +1864,7 @@ export default function TimelineGrid() {
 
           // Check if any of the duplicated operations' groups are outside the current visible window
           const currentOffset = clampedOffset;
-          const currentMaxVisible = currentOffset + groupsPerPage - 1;
+          const currentMaxVisible = currentOffset + equipmentGroupsPerPage - 1;
 
           if (
             minGroupIndex < currentOffset ||
@@ -1596,8 +1875,8 @@ export default function TimelineGrid() {
             const targetOffset = Math.max(
               0,
               Math.min(
-                minGroupIndex - Math.floor(groupsPerPage / 4), // Show some context above
-                groups.length - groupsPerPage
+                minGroupIndex - Math.floor(equipmentGroupsPerPage / 4), // Show some context above
+                groups.length - equipmentGroupsPerPage
               )
             );
             setGroupOffset(targetOffset);
@@ -1659,6 +1938,10 @@ export default function TimelineGrid() {
           onAddEquipment={handleNewEquipment}
           onAddOperation={handleNewOperation}
           onManageBatches={handleManageBatches}
+          showShiftRow={shiftRowEnabled}
+          onToggleShiftRow={() => setShiftRowEnabled((v) => !v)}
+          showTimeOffRow={timeOffRowEnabled}
+          onToggleTimeOffRow={() => setTimeOffRowEnabled((v) => !v)}
           onUndo={async () => {
             if (undoStackRef.current.length === 0) return;
             const target = undoStackRef.current.pop()!;
@@ -1820,14 +2103,14 @@ export default function TimelineGrid() {
             return;
           }
           // ...existing code for vertical group scroll...
-          if (filteredGroups.length <= groupsPerPage) return; // nothing to virtual-scroll
+          if (filteredGroups.length <= equipmentGroupsPerPage) return; // nothing to virtual-scroll
           scrollAccumRef.current += e.deltaY;
           const threshold = 30; // pixels per group scroll
           while (Math.abs(scrollAccumRef.current) >= threshold) {
             const dir = scrollAccumRef.current > 0 ? 1 : -1;
             scrollAccumRef.current -= dir * threshold;
             setGroupOffset((prev) => {
-              const max = Math.max(0, filteredGroups.length - groupsPerPage);
+              const max = Math.max(0, filteredGroups.length - equipmentGroupsPerPage);
               return Math.min(Math.max(prev + dir, 0), max);
             });
           }
@@ -1862,7 +2145,7 @@ export default function TimelineGrid() {
             const groupsDelta = Math.round(-dy / GROUP_LINE_HEIGHT);
             setGroupOffset(() => {
               const base = dragRef.current.startOffset + groupsDelta;
-              const max = Math.max(0, filteredGroups.length - groupsPerPage);
+              const max = Math.max(0, filteredGroups.length - equipmentGroupsPerPage);
               return Math.min(Math.max(base, 0), max);
             });
           }
@@ -1887,6 +2170,11 @@ export default function TimelineGrid() {
             editMode ? (selectedItems.size <= 1 ? "both" : false) : false
           }
           canChangeGroup={false}
+          horizontalLineClassNamesForGroup={(group: any) =>
+            lastPinnedRowId && group.id === lastPinnedRowId
+              ? ["pinned-row-divider"]
+              : []
+          }
           onItemMove={handleItemMove}
           onItemResize={handleItemResize}
           onItemSelect={handleItemSelect}
@@ -1896,6 +2184,16 @@ export default function TimelineGrid() {
           }}
           onCanvasDoubleClick={(groupId: any, time: number) => {
             if (!editMode) return;
+            if (String(groupId) === SHIFT_ROW_ID) {
+              const prefillCrew = getShiftSegments(new Date(time), new Date(time + 1))[0]?.day;
+              handleOpenShiftAssignmentDialog(undefined, prefillCrew);
+              return;
+            }
+            if (String(groupId) === TIMEOFF_ROW_ID) {
+              const clickedDate = new Date(time);
+              handleAddTimeOff({ start: clickedDate, end: clickedDate });
+              return;
+            }
             // groupId should be the equipment id
             const equipmentId = String(groupId);
             const start = new Date(time);
@@ -1918,6 +2216,104 @@ export default function TimelineGrid() {
           lineHeight={GROUP_LINE_HEIGHT}
           itemHeightRatio={ITEM_HEIGHT_RATIO}
           itemRenderer={({ item, getItemProps, getResizeProps }) => {
+            if ((item as any).group === SHIFT_ROW_ID) {
+              const pair = (item as any).shiftCrewPair as "AB" | "CD";
+              const colors = SHIFT_PAIR_COLORS[pair];
+              const dayCrew = (item as any).shiftDayCrew as string;
+              const nightCrew = (item as any).shiftNightCrew as string;
+              const dayNames = (item as any).shiftDayNames as string[];
+              const nightNames = (item as any).shiftNightNames as string[];
+              const itemPropsRaw = getItemProps({
+                onDoubleClick: (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  if (!editMode) return;
+                  handleOpenShiftAssignmentDialog(undefined, dayCrew);
+                },
+                style: {
+                  background: colors.background,
+                  color: colors.foreground,
+                  border: "none",
+                  cursor: editMode ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 600,
+                  fontSize: "12px",
+                  boxSizing: "border-box",
+                  transform: "translateY(-6px)",
+                  height: "calc(100% - 6px)",
+                },
+              });
+              const { key: itemKey, ...itemProps } = (itemPropsRaw as any) ?? {};
+              const tooltipContent = (
+                <div>
+                  <div>
+                    <strong>Day ({dayCrew}):</strong>{" "}
+                    {dayNames.length ? dayNames.join(", ") : "No one assigned"}
+                  </div>
+                  <div>
+                    <strong>Night ({nightCrew}):</strong>{" "}
+                    {nightNames.length ? nightNames.join(", ") : "No one assigned"}
+                  </div>
+                </div>
+              );
+              return (
+                <Tooltip
+                  key={String(itemKey ?? item.id)}
+                  content={tooltipContent}
+                  relationship="label"
+                  withArrow
+                >
+                  <div {...itemProps}>{item.title}</div>
+                </Tooltip>
+              );
+            }
+
+            if ((item as any).group === TIMEOFF_ROW_ID) {
+              const typeLabel = (item as any).timeOffTypeLabel as string;
+              const employeeName = (item as any).timeOffEmployeeName as string;
+              const record = (item as any).timeOffRecord;
+              const colors = TIME_OFF_COLORS[typeLabel] ?? DEFAULT_TIME_OFF_COLOR;
+              const itemPropsRaw = getItemProps({
+                onDoubleClick: (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  if (!editMode) return;
+                  handleEditTimeOff(record);
+                },
+                style: {
+                  background: colors.background,
+                  color: colors.foreground,
+                  border: "none",
+                  cursor: editMode ? "pointer" : "default",
+                  display: "flex",
+                  alignItems: "center",
+                  paddingLeft: 4,
+                  paddingRight: 4,
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  boxSizing: "border-box",
+                  transform: "translateY(-6px)",
+                  height: "calc(100% - 6px)",
+                },
+              });
+              const { key: itemKey, ...itemProps } = (itemPropsRaw as any) ?? {};
+              const note = record?.cr2b6_note ? `: ${record.cr2b6_note}` : "";
+              const tooltipContent = `${employeeName} - ${typeLabel}${note}`;
+              return (
+                <Tooltip
+                  key={String(itemKey ?? item.id)}
+                  content={tooltipContent}
+                  relationship="label"
+                  withArrow
+                >
+                  <div {...itemProps}>{item.title}</div>
+                </Tooltip>
+              );
+            }
+
             const isSelected = selectedItems.has(item.id);
             const canResize = selectedItems.size <= 1;
 
@@ -2042,7 +2438,29 @@ export default function TimelineGrid() {
           }}
           sidebarWidth={180}
           rightSidebarWidth={0}
-          groupRenderer={({ group }) => (
+          groupRenderer={({ group }) =>
+            isPinnedRow(group.id) ? (
+              <div
+                style={{
+                  padding: "4px 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  height: "100%",
+                  boxSizing: "border-box",
+                  backgroundColor: tokens.colorNeutralBackground3,
+                  fontWeight: "bold",
+                  fontSize: "0.9em",
+                  color: tokens.colorNeutralForeground1,
+                  userSelect: "none",
+                  borderBottom:
+                    group.id === lastPinnedRowId
+                      ? "2px solid #c8c6c4"
+                      : undefined,
+                }}
+              >
+                {group.title}
+              </div>
+            ) : (
             <div
               draggable={editMode}
               onDragStart={(e) => {
@@ -2147,7 +2565,8 @@ export default function TimelineGrid() {
                 {group.rightTitle}
               </div>
             </div>
-          )}
+            )
+          }
         >
           <TimelineHeaders>
             <SidebarHeader>
@@ -2271,6 +2690,40 @@ export default function TimelineGrid() {
         batches={batches}
         onOpenChange={setIsBatchManagementOpen}
         onSaveBatch={handleSaveBatch}
+      />
+
+      {/* Shift Assignment Dialog */}
+      <ShiftAssignmentDialog
+        assignment={selectedShiftAssignment}
+        prefillCrew={shiftAssignmentPrefillCrew}
+        open={isShiftAssignmentDialogOpen}
+        onOpenChange={(_, data) => {
+          if (!data.open) {
+            setIsShiftAssignmentDialogOpen(false);
+            setSelectedShiftAssignment(undefined);
+          }
+        }}
+        onSave={handleSaveShiftAssignment}
+        onDelete={selectedShiftAssignment ? handleDeleteShiftAssignment : undefined}
+        people={people}
+        editMode={editMode}
+      />
+
+      {/* Time Off Dialog */}
+      <TimeOffDialog
+        timeOff={selectedTimeOff}
+        prefillRange={timeOffPrefillRange}
+        open={isTimeOffDialogOpen}
+        onOpenChange={(_, data) => {
+          if (!data.open) {
+            setIsTimeOffDialogOpen(false);
+            setSelectedTimeOff(undefined);
+          }
+        }}
+        onSave={handleSaveTimeOff}
+        onDelete={selectedTimeOff ? handleDeleteTimeOff : undefined}
+        people={people}
+        editMode={editMode}
       />
       </div>
     </div>

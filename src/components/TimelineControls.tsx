@@ -1,5 +1,6 @@
 import {
   Button,
+  ToggleButton,
   Toolbar,
   ToolbarDivider,
   Dropdown,
@@ -24,6 +25,8 @@ import {
   Search24Regular,
   ArrowCounterclockwise24Regular,
   ArrowClockwise24Regular,
+  PeopleTeam24Regular,
+  Clock24Regular,
 } from "@fluentui/react-icons";
 import { ZoomLevel } from "../hooks/useViewport";
 
@@ -45,6 +48,10 @@ interface Props {
   canUndo?: boolean;
   canRedo?: boolean;
   embedded?: boolean; // New prop for header embedding
+  showShiftRow: boolean;
+  onToggleShiftRow: () => void;
+  showTimeOffRow: boolean;
+  onToggleTimeOffRow: () => void;
 }
 
 const useStyles = makeStyles({
@@ -91,6 +98,10 @@ export default function TimelineControls({
   canUndo,
   canRedo,
   embedded = false,
+  showShiftRow,
+  onToggleShiftRow,
+  showTimeOffRow,
+  onToggleTimeOffRow,
 }: Props) {
   const styles = useStyles();
   const toasterId = useId("controls-toaster");
@@ -190,7 +201,29 @@ export default function TimelineControls({
       </Button>
 
       <ToolbarDivider />
-  
+
+      <ToggleButton
+        appearance="subtle"
+        icon={<PeopleTeam24Regular />}
+        checked={showShiftRow}
+        onClick={onToggleShiftRow}
+        aria-label="Toggle Shift row"
+      >
+        Shift
+      </ToggleButton>
+
+      <ToggleButton
+        appearance="subtle"
+        icon={<Clock24Regular />}
+        checked={showTimeOffRow}
+        onClick={onToggleTimeOffRow}
+        aria-label="Toggle Time Off row"
+      >
+        Time Off
+      </ToggleButton>
+
+      <ToolbarDivider />
+
 
       {/* right side spacer to push File menu to far right */}
       <div className={styles.spacer}></div>

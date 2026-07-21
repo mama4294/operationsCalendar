@@ -5,6 +5,7 @@
 
 // Models
 export * as CommonModels from './models/CommonModels';
+export * as Cr2b6_peoplesModel from './models/Cr2b6_peoplesModel';
 export * as Cr2b6_shiftassignmentsModel from './models/Cr2b6_shiftassignmentsModel';
 export * as Cr2b6_timeoffsModel from './models/Cr2b6_timeoffsModel';
 export * as cr2b6_batchesesModel from './models/cr2b6_batchesesModel';
@@ -12,8 +13,10 @@ export * as cr2b6_operationsModel from './models/cr2b6_operationsModel';
 export * as cr2b6_systemsModel from './models/cr2b6_systemsModel';
 
 // Services
-export * from './services/Cr2b6_shiftassignmentsService';
-export * from './services/Cr2b6_timeoffsService';
+// Note: Cr2b6_peoplesService/Cr2b6_shiftassignmentsService/Cr2b6_timeoffsService are omitted -
+// the generated code imports modules that don't exist in the installed @microsoft/power-apps
+// version, and nothing in the app uses these generated service classes anyway (DataProvider
+// talks to the SDK client directly).
 export * from './services/cr2b6_batchesesService';
 export * from './services/cr2b6_operationsService';
 export * from './services/cr2b6_systemsService';

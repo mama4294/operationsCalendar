@@ -1,5 +1,5 @@
 import { getPowerSdkInstance } from "@microsoft/power-apps/lib";
-import { dataSourcesInfo } from "../../.power/appschemas/dataSourcesInfo";
+import { dataSourcesInfo } from "../../.power/schemas/appschemas/dataSourcesInfo";
 import type { IOperationResult } from "@microsoft/power-apps/lib";
 import type {
   IGetOptions,
@@ -8,6 +8,9 @@ import type {
 import type { cr2b6_batcheses } from "../generated/models/cr2b6_batchesesModel";
 import type { cr2b6_systems } from "../generated/models/cr2b6_systemsModel";
 import type { cr2b6_operations } from "../generated/models/cr2b6_operationsModel";
+import type { Cr2b6_peoples } from "../generated/models/Cr2b6_peoplesModel";
+import type { Cr2b6_shiftassignments } from "../generated/models/Cr2b6_shiftassignmentsModel";
+import type { Cr2b6_timeoffs } from "../generated/models/Cr2b6_timeoffsModel";
 import { showErrorToast } from "../utils/toastUtils";
 
 // Safely extract a readable error message from Dataverse/SDK error payloads
@@ -59,7 +62,39 @@ export const DATASOURCES = {
   systems: "cr2b6_systems",
   operations: "cr2b6_operations",
   batches: "cr2b6_batcheses",
+  people: "cr2b6_peoples",
+  shiftAssignments: "cr2b6_shiftassignments",
+  timeOff: "cr2b6_timeoffs",
 } as const;
+
+// Exported so UI code can filter/label by the raw numeric option-set value,
+// which is always returned by the Web API - unlike the derived `<field>name`
+// formatted-value fields, which are not reliably populated for option sets.
+export const SHIFT_CODES: Record<string, number> = {
+  A: 566210000,
+  B: 566210001,
+  C: 566210002,
+  D: 566210003,
+};
+
+export const TIME_OFF_TYPE_CODES: Record<string, number> = {
+  RTO: 566210000,
+  PTO: 566210001,
+  Sick: 566210002,
+};
+
+// Inputs for creating/updating shift assignments and time off records.
+// `employeeId` carries the selected cr2b6_peoples GUID (bound via @odata.bind on save);
+// `employeeLabel` is only used to build a readable primary name for new records.
+export interface ShiftAssignmentInput extends Partial<Cr2b6_shiftassignments> {
+  employeeId?: string;
+  employeeLabel?: string;
+}
+
+export interface TimeOffInput extends Partial<Cr2b6_timeoffs> {
+  employeeId?: string;
+  employeeLabel?: string;
+}
 
 // Generic helpers
 export async function getAll<T>(
@@ -140,6 +175,15 @@ export interface IDataProvider {
   saveBatch(batch: Partial<cr2b6_batcheses>): Promise<cr2b6_batcheses>;
   deleteBatch(): Promise<void>;
   getProductOptions(): Promise<Array<{ value: string; label: string }>>;
+  getPeople(): Promise<Cr2b6_peoples[]>;
+  getShiftAssignments(): Promise<Cr2b6_shiftassignments[]>;
+  saveShiftAssignment(
+    assignment: ShiftAssignmentInput
+  ): Promise<Cr2b6_shiftassignments>;
+  deleteShiftAssignment(id: string): Promise<void>;
+  getTimeOff(): Promise<Cr2b6_timeoffs[]>;
+  saveTimeOff(timeOff: TimeOffInput): Promise<Cr2b6_timeoffs>;
+  deleteTimeOff(id: string): Promise<void>;
 }
 
 class DataverseDataProvider implements IDataProvider {
@@ -477,6 +521,160 @@ class DataverseDataProvider implements IDataProvider {
         { value: "Functional Ingredient", label: "Functional Ingredient" },
         { value: "Other", label: "Other" }
       ];
+    }
+  }
+
+  async getPeople(): Promise<Cr2b6_peoples[]> {
+    const result = await getAll<Cr2b6_peoples>(DATASOURCES.people);
+    if (result.success) {
+      return result.data;
+    }
+    const msg = formatErrorMessage("Failed to get people", result.error);
+    showErrorToast(msg);
+    throw new Error(msg);
+  }
+
+  async getShiftAssignments(): Promise<Cr2b6_shiftassignments[]> {
+    const result = await getAll<Cr2b6_shiftassignments>(
+      DATASOURCES.shiftAssignments
+    );
+    if (result.success) {
+      return result.data;
+    }
+    const msg = formatErrorMessage(
+      "Failed to get shift assignments",
+      result.error
+    );
+    showErrorToast(msg);
+    throw new Error(msg);
+  }
+
+  async saveShiftAssignment(
+    assignment: ShiftAssignmentInput
+  ): Promise<Cr2b6_shiftassignments> {
+    const { employeeId, employeeLabel, ...rest } = assignment;
+    const payload: Record<string, any> = {};
+
+    if (rest.cr2b6_shift != null) {
+      const code =
+        typeof rest.cr2b6_shift === "number"
+          ? rest.cr2b6_shift
+          : SHIFT_CODES[String(rest.cr2b6_shift).toUpperCase()];
+      if (typeof code === "number") payload.cr2b6_shift = code;
+    }
+    if (rest.cr2b6_startdate != null) payload.cr2b6_startdate = rest.cr2b6_startdate;
+    if (rest.cr2b6_enddate !== undefined) payload.cr2b6_enddate = rest.cr2b6_enddate;
+    if (rest.cr2b6_note !== undefined) payload.cr2b6_note = rest.cr2b6_note;
+
+    if (employeeId) {
+      const guid = employeeId.replace(/[{}]/g, "");
+      payload["cr2b6_Employee@odata.bind"] = `/cr2b6_peoples(${guid})`;
+    }
+
+    const isCreate = !rest.cr2b6_shiftassignmentid;
+    if (isCreate) {
+      payload.cr2b6_id =
+        rest.cr2b6_id || `${employeeLabel ?? "Assignment"} - ${rest.cr2b6_shift ?? ""}`;
+      const result = await create<
+        Record<string, any>,
+        Cr2b6_shiftassignments
+      >(DATASOURCES.shiftAssignments, payload);
+      if (result.success) return result.data;
+      const msg = formatErrorMessage(
+        "Failed to create shift assignment",
+        result.error
+      );
+      showErrorToast(msg);
+      throw new Error(msg);
+    }
+
+    const result = await update<Record<string, any>, Cr2b6_shiftassignments>(
+      DATASOURCES.shiftAssignments,
+      rest.cr2b6_shiftassignmentid!,
+      payload
+    );
+    if (result.success) return result.data;
+    const msg = formatErrorMessage(
+      "Failed to update shift assignment",
+      result.error
+    );
+    showErrorToast(msg);
+    throw new Error(msg);
+  }
+
+  async deleteShiftAssignment(id: string): Promise<void> {
+    const result = await remove(DATASOURCES.shiftAssignments, id);
+    if (!result.success) {
+      const msg = formatErrorMessage(
+        "Failed to delete shift assignment",
+        result.error
+      );
+      showErrorToast(msg);
+      throw new Error(msg);
+    }
+  }
+
+  async getTimeOff(): Promise<Cr2b6_timeoffs[]> {
+    const result = await getAll<Cr2b6_timeoffs>(DATASOURCES.timeOff);
+    if (result.success) {
+      return result.data;
+    }
+    const msg = formatErrorMessage("Failed to get time off", result.error);
+    showErrorToast(msg);
+    throw new Error(msg);
+  }
+
+  async saveTimeOff(timeOff: TimeOffInput): Promise<Cr2b6_timeoffs> {
+    const { employeeId, employeeLabel, ...rest } = timeOff;
+    const payload: Record<string, any> = {};
+
+    if (rest.cr2b6_type != null) {
+      const code =
+        typeof rest.cr2b6_type === "number"
+          ? rest.cr2b6_type
+          : TIME_OFF_TYPE_CODES[String(rest.cr2b6_type)];
+      if (typeof code === "number") payload.cr2b6_type = code;
+    }
+    if (rest.cr2b6_startdate != null) payload.cr2b6_startdate = rest.cr2b6_startdate;
+    if (rest.cr2b6_enddate !== undefined) payload.cr2b6_enddate = rest.cr2b6_enddate;
+    if (rest.cr2b6_note !== undefined) payload.cr2b6_note = rest.cr2b6_note;
+
+    if (employeeId) {
+      const guid = employeeId.replace(/[{}]/g, "");
+      payload["cr2b6_Employee@odata.bind"] = `/cr2b6_peoples(${guid})`;
+    }
+
+    const isCreate = !rest.cr2b6_timeoffid;
+    if (isCreate) {
+      payload.cr2b6_name =
+        rest.cr2b6_name || `${employeeLabel ?? "Time Off"} - ${rest.cr2b6_type ?? ""}`;
+      const result = await create<Record<string, any>, Cr2b6_timeoffs>(
+        DATASOURCES.timeOff,
+        payload
+      );
+      if (result.success) return result.data;
+      const msg = formatErrorMessage("Failed to create time off", result.error);
+      showErrorToast(msg);
+      throw new Error(msg);
+    }
+
+    const result = await update<Record<string, any>, Cr2b6_timeoffs>(
+      DATASOURCES.timeOff,
+      rest.cr2b6_timeoffid!,
+      payload
+    );
+    if (result.success) return result.data;
+    const msg = formatErrorMessage("Failed to update time off", result.error);
+    showErrorToast(msg);
+    throw new Error(msg);
+  }
+
+  async deleteTimeOff(id: string): Promise<void> {
+    const result = await remove(DATASOURCES.timeOff, id);
+    if (!result.success) {
+      const msg = formatErrorMessage("Failed to delete time off", result.error);
+      showErrorToast(msg);
+      throw new Error(msg);
     }
   }
 }

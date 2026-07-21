@@ -33,6 +33,13 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "cr2b6_peoples": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "cr2b6_peopleid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "cr2b6_shiftassignments": {
     "tableId": "",
     "version": "",

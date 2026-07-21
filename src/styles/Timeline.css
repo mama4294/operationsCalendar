@@ -63,6 +63,11 @@
   border-left: 1px solid #eee;
 }
 
+/* Separates the pinned Shift/Time Off rows from the equipment rows below */
+.timeline-grid .rct-horizontal-lines .pinned-row-divider {
+  border-bottom: 2px solid #c8c6c4;
+}
+
 /* Multi-select styling */
 .timeline-grid .rct-item[data-selected="true"] {
   border: 2px solid #0078d4 !important;
