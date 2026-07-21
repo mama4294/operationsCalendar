@@ -30,8 +30,17 @@
           "entitySetName": "cr2b6_operations",
           "logicalName": "cr2b6_operation",
           "isHidden": false
+        },
+        "timeoff": {
+          "entitySetName": "cr2b6_timeoffs",
+          "logicalName": "cr2b6_timeoff"
+        },
+        "shiftassignments": {
+          "entitySetName": "cr2b6_shiftassignments",
+          "logicalName": "cr2b6_shiftassignment"
         }
       }
     }
-  }
+  },
+  "version": "1.0"
 }

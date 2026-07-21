@@ -4,12 +4,16 @@
  */
 
 // Models
-export * as CommonModels from "./models/CommonModels";
-export * as cr2b6_batchesesModel from "./models/cr2b6_batchesesModel";
-export * as cr2b6_operationsModel from "./models/cr2b6_operationsModel";
-export * as cr2b6_systemsModel from "./models/cr2b6_systemsModel";
+export * as CommonModels from './models/CommonModels';
+export * as Cr2b6_shiftassignmentsModel from './models/Cr2b6_shiftassignmentsModel';
+export * as Cr2b6_timeoffsModel from './models/Cr2b6_timeoffsModel';
+export * as cr2b6_batchesesModel from './models/cr2b6_batchesesModel';
+export * as cr2b6_operationsModel from './models/cr2b6_operationsModel';
+export * as cr2b6_systemsModel from './models/cr2b6_systemsModel';
 
 // Services
-export * from "./services/cr2b6_batchesesService";
-export * from "./services/cr2b6_systemsService";
-export * from "./services/cr2b6_operationsService";
+export * from './services/Cr2b6_shiftassignmentsService';
+export * from './services/Cr2b6_timeoffsService';
+export * from './services/cr2b6_batchesesService';
+export * from './services/cr2b6_operationsService';
+export * from './services/cr2b6_systemsService';
