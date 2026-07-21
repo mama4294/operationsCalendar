@@ -1396,11 +1396,15 @@ export default function TimelineGrid() {
       items.find((item) => item.id === contextMenu.operationId);
     if (!operation) return;
 
-    // Normalized accessors
+    // Normalized accessors (Dataverse returns lookups as _cr2b6_*_value, not cr2b6_*)
     const opBatchId =
-      "cr2b6_batch" in operation ? operation.cr2b6_batch : operation.batchId;
+      (operation as any)._cr2b6_batch_value ||
+      operation.cr2b6_batch ||
+      operation.batchId;
     const opEquipmentId =
-      "cr2b6_system" in operation ? operation.cr2b6_system : operation.group;
+      (operation as any)._cr2b6_system_value ||
+      operation.cr2b6_system ||
+      operation.group;
     if (!opBatchId) {
       console.log("Operation has no batch to extend selection below.");
       setContextMenu((prev) => ({ ...prev, visible: false }));

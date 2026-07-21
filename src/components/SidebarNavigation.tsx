@@ -4,9 +4,8 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { 
-  CalendarLtr16Regular, 
-  Map16Regular,
+import {
+  CalendarLtr16Regular,
   Navigation16Regular,
 } from '@fluentui/react-icons';
 
@@ -159,7 +158,7 @@ const useStyles = makeStyles({
   },
 });
 
-export type PageType = 'timeline' | 'floorplan';
+export type PageType = 'timeline';
 
 interface SidebarNavigationProps {
   currentPage: PageType;
@@ -179,11 +178,6 @@ export default function SidebarNavigation({ currentPage, onPageChange }: Sidebar
       key: 'timeline' as PageType,
       label: 'Timeline',
       icon: CalendarLtr16Regular,
-    },
-    {
-      key: 'floorplan' as PageType,
-      label: 'Floor Plan',
-      icon: Map16Regular,
     },
   ];
 

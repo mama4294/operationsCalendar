@@ -6,7 +6,6 @@ import {
 } from "@fluentui/react-components";
 import { useState } from "react";
 import TimelineGrid from "./components/TimelineGrid";
-import FloorPlan from "./components/FloorPlan";
 import SidebarNavigation, { PageType } from "./components/SidebarNavigation";
 import { useGlobalToast, setGlobalToasterId } from "./utils/toastUtils";
 import "./App.css";
@@ -22,8 +21,6 @@ function App() {
     switch (currentPage) {
       case 'timeline':
         return <TimelineGrid />;
-      case 'floorplan':
-        return <FloorPlan />;
       default:
         return <TimelineGrid />;
     }
@@ -44,10 +41,10 @@ function App() {
         }}
       >
         {/* Sidebar Navigation */}
-        <SidebarNavigation 
+        {/* <SidebarNavigation 
           currentPage={currentPage} 
           onPageChange={setCurrentPage} 
-        />
+        /> */}
         
         {/* Main Content Area */}
         <div

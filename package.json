@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"pac code run\"",
+    "dev": "concurrently \"vite\" \"pac code run --port 8081\"",
     "dev:vite": "vite",
-    "dev:pac": "pac code run",
+    "dev:pac": "pac code run --port 8081",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
