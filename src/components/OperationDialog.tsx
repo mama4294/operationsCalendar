@@ -142,6 +142,13 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
     }
   }, [operation]);
 
+  // A double-click on empty canvas pre-fills `operation` (equipment/time
+  // defaults) for a brand-new operation, so presence of the prop alone
+  // doesn't mean we're editing an existing record - check for a real ID.
+  const isExistingOperation = Boolean(
+    operation && (operation.cr2b6_operationid || operation.cr2b6_id)
+  );
+
   const handleChange = useCallback(
     (field: keyof cr2b6_operations, value: any) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
@@ -208,7 +215,7 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
         <DialogSurface style={{ width: "600px", maxWidth: "90vw" }}>
           <DialogTitle>
             {editMode
-              ? operation
+              ? isExistingOperation
                 ? "Edit Operation"
                 : "Add Operation"
               : "View Operation"}
@@ -436,7 +443,7 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
           <DialogActions
             style={{ display: "flex", justifyContent: "space-between" }}
           >
-            {editMode && operation && onDelete && (
+            {editMode && isExistingOperation && onDelete && (
               <Button appearance="subtle" onClick={handleDelete}>
                 Delete
               </Button>
@@ -447,7 +454,7 @@ export const OperationDialog: React.FC<OperationDialogProps> = ({
               </DialogTrigger>
               {editMode && (
                 <Button appearance="primary" onClick={handleSave}>
-                  {operation ? "Save" : "Add"}
+                  {isExistingOperation ? "Save" : "Add"}
                 </Button>
               )}
             </div>
